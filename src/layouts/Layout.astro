@@ -88,7 +88,7 @@ const { title, description } = Astro.props;
   h3 { font-size: 16.5px; font-weight: 650; margin: 28px 0 10px; }
   p, li { line-height: 1.65; font-size: 15.5px; }
   a { color: var(--accent); }
-  article p, article ul, article ol, article blockquote, article pre, article .katex-display {
+  article p, article ul, article ol, article blockquote, article pre {
     margin: 0 0 18px;
   }
   blockquote {
@@ -110,9 +110,13 @@ const { title, description } = Astro.props;
     line-height: 1.5;
   }
   .katex-display {
+    margin: 1.6em 0;
+    padding: 0.15em 0;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 4px 0;
+  }
+  .katex-display > .katex {
+    font-size: 1.1em;
   }
   img { max-width: 100%; }
   hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
