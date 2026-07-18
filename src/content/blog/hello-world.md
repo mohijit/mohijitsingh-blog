@@ -12,7 +12,7 @@ $\det(A - \lambda I) = 0$.
 And a display equation — the softmax function used throughout deep learning:
 
 $$
-\text{softmax}(z_i) = \frac{e^{z_i}}{\rule{0pt}{1.8em}\sum_{j=1}^{K} e^{z_j}}
+\text{softmax}(z_i) = \frac{e^{z_i}}{\rule{0pt}{1.4em}\sum_{j=1}^{K} e^{z_j}}
 $$
 
 Code blocks get syntax highlighting for free:
