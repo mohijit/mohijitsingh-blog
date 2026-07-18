@@ -1,0 +1,24 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+
+const posts = (await getCollection('blog', ({ data }) => import.meta.env.PROD ? !data.draft : true))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<Layout title="Mohijit Singh — Blog" description="Notes on mathematics, computer science, and AI.">
+  <h1>Blog</h1>
+  <p style="color: var(--text-dim); margin-bottom: 32px;">Notes on mathematics, computer science, and AI.</p>
+  <ul style="list-style: none; padding: 0; margin: 0;">
+    {posts.map((post) => (
+      <li style="margin-bottom: 22px;">
+        <a href={`/blog/${post.id}/`} style="font-size: 16px; font-weight: 600; text-decoration: none;">{post.data.title}</a>
+        <div style="color: var(--text-faint); font-size: 12.5px; margin-top: 3px;">
+          {post.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+          {post.data.draft && ' · draft'}
+        </div>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 6px;">{post.data.description}</p>
+      </li>
+    ))}
+  </ul>
+</Layout>
