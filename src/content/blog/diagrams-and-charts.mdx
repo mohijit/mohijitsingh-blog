@@ -1,0 +1,22 @@
+---
+title: "Diagrams and interactive charts"
+description: "Testing build-time TikZ diagrams and interactive Observable Plot charts."
+date: 2026-07-19
+tags: ["meta"]
+draft: false
+---
+
+import Chart from '../../components/Chart.astro';
+
+Diagrams compile from TikZ at build time, so there's no client-side cost:
+
+```tikz
+\draw[thick,->] (0,0) -- (3,0) node[right] {$x$};
+\draw[thick,->] (0,0) -- (0,3) node[above] {$y$};
+\draw[blue,thick] (0,0) circle (2);
+\node at (1.4,1.4) {$x^2+y^2=r^2$};
+```
+
+And charts are interactive (hover for values) — the sigmoid function:
+
+<Chart fn="1 / (1 + Math.exp(-x))" domain={[-8, 8]} xLabel="x" yLabel="σ(x)" />

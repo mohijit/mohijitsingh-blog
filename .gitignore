@@ -1,5 +1,7 @@
 # build output
 dist/
+# TikZ compilation cache (regenerated on demand; cached across CI runs via actions/cache)
+.tikz-cache/
 # generated types
 .astro/
 

@@ -1,0 +1,92 @@
+---
+interface MarkSpec {
+  type: 'line' | 'dot' | 'barY';
+  x?: string;
+  y?: string;
+  stroke?: string;
+  fill?: string;
+}
+
+interface Props {
+  data?: Record<string, number>[];
+  fn?: string;
+  domain?: [number, number];
+  samples?: number;
+  marks?: MarkSpec[];
+  width?: number;
+  height?: number;
+  xLabel?: string;
+  yLabel?: string;
+  grid?: boolean;
+}
+
+const {
+  data = null,
+  fn = null,
+  domain = [-10, 10],
+  samples = 200,
+  marks = [{ type: 'line', x: 'x', y: 'y' }],
+  width = 640,
+  height = 360,
+  xLabel = 'x',
+  yLabel = 'y',
+  grid = true,
+} = Astro.props;
+
+const spec = JSON.stringify({ data, fn, domain, samples, marksSpec: marks, width, height, xLabel, yLabel, grid });
+---
+
+<div class="chart-container" data-chart-spec={spec}></div>
+
+<script>
+  import * as Plot from '@observablehq/plot';
+
+  function renderChart(container: HTMLElement, spec: string) {
+    const { data, fn, domain, samples, marksSpec, width, height, xLabel, yLabel, grid } = JSON.parse(spec);
+
+    let points = data;
+    if (!points && fn) {
+      const f = new Function('x', `return ${fn}`);
+      const [a, b] = domain;
+      points = Array.from({ length: samples }, (_, i) => {
+        const x = a + (i / (samples - 1)) * (b - a);
+        return { x, y: f(x) };
+      });
+    }
+    points = points ?? [];
+
+    const markFns: Record<string, typeof Plot.line> = { line: Plot.line, dot: Plot.dot, barY: Plot.barY };
+    const markObjects = marksSpec.map((m: MarkSpec) =>
+      markFns[m.type](points, { x: m.x ?? 'x', y: m.y ?? 'y', stroke: m.stroke, fill: m.fill })
+    );
+    markObjects.push(Plot.tip(points, Plot.pointer({ x: 'x', y: 'y' })));
+
+    const plot = Plot.plot({
+      width,
+      height,
+      grid,
+      x: { label: xLabel },
+      y: { label: yLabel },
+      marks: markObjects,
+    });
+
+    container.append(plot);
+  }
+
+  document.querySelectorAll<HTMLElement>('.chart-container[data-chart-spec]').forEach((container) => {
+    renderChart(container, container.dataset.chartSpec!);
+    container.removeAttribute('data-chart-spec');
+  });
+</script>
+
+<style>
+  .chart-container {
+    margin: 1.6em 0;
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+  }
+  .chart-container svg {
+    max-width: 100%;
+  }
+</style>

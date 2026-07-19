@@ -22,6 +22,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install poppler-utils (pdftocairo)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Install tectonic
+        run: |
+          curl -sL https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.16.9/tectonic-0.16.9-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          sudo mv tectonic /usr/local/bin/tectonic
+      - name: Cache tectonic package cache and TikZ diagram cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/Tectonic
+            .tikz-cache
+          key: tikz-${{ hashFiles('src/content/blog/**/*.md', 'src/content/blog/**/*.mdx') }}
+          restore-keys: tikz-
       - run: npm ci
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3

@@ -62,6 +62,59 @@ but are deprecated and print a warning — don't use them if editing this later.
   `actions/deploy-pages` on push to `master`.
 - `public/CNAME` — `blog.mohijitsingh.com` (copied into `dist/` root by Astro).
 
+## Diagrams (TikZ, build-time)
+
+A custom remark plugin (`plugins/remark-tikz.mjs`) finds ` ```tikz ` fenced
+code blocks, wraps the contents in a minimal `standalone` LaTeX document
+(TikZ + pgfplots preamble, common libraries pre-loaded), compiles via
+**tectonic** (a small self-contained LaTeX engine — no full TeX Live install)
+to PDF, converts to SVG via **pdftocairo** (poppler-utils), and inlines the
+result. Content-hashed cache in `.tikz-cache/` (gitignored, restored via
+`actions/cache` in CI) so unchanged diagrams skip recompilation. Zero
+client-side cost, same philosophy as the KaTeX math.
+
+TikZ draws in plain black by default (no theme awareness), so the compiled
+SVG is wrapped in a fixed white card (`.tikz-diagram` in `Layout.astro`) —
+same reasoning as the code blocks having their own fixed dark background
+regardless of site theme, otherwise it'd vanish in dark mode.
+
+Local dev needs `tectonic` and `pdftocairo` on `PATH` (or set `TECTONIC_BIN`/
+`PDFTOCAIRO_BIN` env vars to point at them). CI installs both automatically
+(see `.github/workflows/deploy.yml`).
+
+Usage in any post:
+```tikz
+\draw[thick,->] (0,0) -- (3,0) node[right] {$x$};
+\draw[blue,thick] (0,0) circle (2);
+```
+(Just the tikzpicture contents — the `\begin{tikzpicture}`/`\documentclass`
+wrapping happens automatically.)
+
+## Interactive charts (Observable Plot, requires .mdx)
+
+`src/components/Chart.astro` wraps **Observable Plot** (D3-based, much less
+boilerplate than raw D3 for function/data plots). Hover shows a live tooltip
+via `Plot.tip`+`Plot.pointer`. Two modes:
+- `fn="Math.sin(x)"` + `domain={[-8, 8]}` — samples a JS expression over a
+  domain.
+- `data={[{x, y}, ...]}` — plot explicit data points.
+Both accept `marks` (`line`/`dot`/`barY`), `width`/`height`, `xLabel`/`yLabel`.
+
+**Only works in `.mdx` posts**, not plain `.md` — embedding a live component in
+content requires MDX. Plain text/math posts can stay `.md`; only posts that
+need a chart use `.mdx`. Import and use like any component:
+```mdx
+import Chart from '../../components/Chart.astro';
+
+<Chart fn="1 / (1 + Math.exp(-x))" domain={[-8, 8]} xLabel="x" yLabel="σ(x)" />
+```
+
+Implementation note: the component passes its config to the client via a
+`data-chart-spec` JSON attribute, not Astro's `define:vars` — `define:vars`
+scripts are inlined *without* going through Vite's bundler, so they can't use
+`import` statements (learned this the hard way; the first version silently
+failed with "Cannot use import statement outside a module").
+
 ## Writing a post
 
 1. Add `src/content/blog/<slug>.md` with frontmatter:
@@ -90,5 +143,19 @@ but are deprecated and print a warning — don't use them if editing this later.
   block, and `dist/CNAME` correctly containing `blog.mohijitsingh.com`.
 - KaTeX fonts confirmed bundled into `dist/_astro/*.woff2` (self-hosted, no
   CDN).
-- No real browser was available in this environment — verification was at the
-  build-output/HTML level, not a visual check. Worth a manual look once live.
+- A headless browser (Playwright) was installed in the dev environment and
+  used for real visual verification of later changes — screenshots confirmed
+  the TikZ diagram and Observable Plot chart both render correctly with real
+  data, in both light and dark mode.
+- Full pipeline (tectonic + pdftocairo) tested locally on Windows using
+  portable binaries (no admin install available) before ever touching CI.
+- **One unresolved gap:** the chart's hover tooltip (`Plot.tip`) could not be
+  triggered via automated Playwright interaction, despite confirming the
+  event listeners are correctly attached to the SVG and events fire with
+  correct coordinates (`isTrusted: true`, correct `clientX`/`clientY`). This
+  looks like a headless-browser `getScreenCTM()` coordinate-transform quirk
+  (a known category of flakiness for D3 pointer interactions under headless
+  testing) rather than a real bug — this exact `Plot.tip`+`Plot.pointer`
+  pattern is Observable Plot's standard, heavily-used tooltip recipe. Worth a
+  real mouse check once live; if it genuinely doesn't work, revisit
+  `Chart.astro`'s pointer wiring.
