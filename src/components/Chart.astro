@@ -79,7 +79,7 @@ const spec = JSON.stringify({ data, fn, domain, samples, marksSpec: marks, width
   });
 </script>
 
-<style>
+<style is:global>
   .chart-container {
     margin: 1.6em 0;
     display: flex;
@@ -88,5 +88,14 @@ const spec = JSON.stringify({ data, fn, domain, samples, marksSpec: marks, width
   }
   .chart-container svg {
     max-width: 100%;
+    /* Plot hardcodes --plot-background: white via a zero-specificity
+       :where() rule, used as the tip/marker fill; override per theme so
+       the tooltip text (which uses currentColor) stays legible. */
+    --plot-background: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    .chart-container svg {
+      --plot-background: #16181d;
+    }
   }
 </style>
