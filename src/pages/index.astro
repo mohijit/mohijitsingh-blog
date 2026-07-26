@@ -4,21 +4,153 @@ import Layout from '../layouts/Layout.astro';
 
 const posts = (await getCollection('blog', ({ data }) => import.meta.env.PROD ? !data.draft : true))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const allTags = [...new Set(posts.flatMap((post) => post.data.tags))].sort();
 ---
 
 <Layout title="Mohijit Singh — Blog" description="Notes on mathematics, computer science, and AI.">
   <h1>Blog</h1>
-  <p style="color: var(--text-dim); margin-bottom: 32px;">Notes on mathematics, computer science, and AI.</p>
-  <ul style="list-style: none; padding: 0; margin: 0;">
+  <p style="color: var(--text-dim); margin-bottom: 24px;">Notes on mathematics, computer science, and AI.</p>
+
+  <input
+    id="search-input"
+    type="text"
+    placeholder="Search posts…"
+    aria-label="Search posts"
+    style="width: 100%; padding: 9px 12px; margin-bottom: 14px; font-size: 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit;"
+  />
+
+  {allTags.length > 0 && (
+    <div id="tag-filters" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px;">
+      {allTags.map((tag) => (
+        <button type="button" class="tag-chip" data-tag={tag}>{tag}</button>
+      ))}
+      <button type="button" id="clear-filters" style="display: none;">Clear</button>
+    </div>
+  )}
+
+  <p id="no-results" style="display: none; color: var(--text-dim); font-size: 14px;">No posts match your search/filters.</p>
+
+  <ul id="post-list" style="list-style: none; padding: 0; margin: 0;">
     {posts.map((post) => (
-      <li style="margin-bottom: 22px;">
+      <li
+        class="post-item"
+        data-title={post.data.title.toLowerCase()}
+        data-description={post.data.description.toLowerCase()}
+        data-tags={post.data.tags.join(',')}
+        style="margin-bottom: 22px;"
+      >
         <a href={`/blog/${post.id}/`} style="font-size: 16px; font-weight: 600; text-decoration: none;">{post.data.title}</a>
         <div style="color: var(--text-faint); font-size: 12.5px; margin-top: 3px;">
           {post.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
           {post.data.draft && ' · draft'}
         </div>
         <p style="color: var(--text-dim); font-size: 14px; margin-top: 6px;">{post.data.description}</p>
+        {post.data.tags.length > 0 && (
+          <div class="post-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+            {post.data.tags.map((tag) => (
+              <span class="tag-pill" data-tag={tag}>{tag}</span>
+            ))}
+          </div>
+        )}
       </li>
     ))}
   </ul>
 </Layout>
+
+<style is:global>
+  .tag-chip {
+    font: inherit;
+    font-size: 12.5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+  }
+  .tag-chip:hover {
+    border-color: var(--accent);
+  }
+  .tag-chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--surface);
+  }
+  #clear-filters {
+    font: inherit;
+    font-size: 12.5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--text-faint);
+    cursor: pointer;
+  }
+  #clear-filters:hover {
+    color: var(--text);
+  }
+  .tag-pill {
+    font-size: 11px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--border);
+    color: var(--text-dim);
+  }
+</style>
+
+<script>
+  const searchInput = document.getElementById('search-input') as HTMLInputElement;
+  const tagFilters = document.getElementById('tag-filters');
+  const clearButton = document.getElementById('clear-filters') as HTMLButtonElement | null;
+  const noResults = document.getElementById('no-results') as HTMLElement;
+  const postItems = Array.from(document.querySelectorAll<HTMLElement>('.post-item'));
+
+  const activeTags = new Set<string>();
+
+  function applyFilters() {
+    const query = searchInput.value.trim().toLowerCase();
+    let visibleCount = 0;
+
+    for (const item of postItems) {
+      const title = item.dataset.title ?? '';
+      const description = item.dataset.description ?? '';
+      const tags = (item.dataset.tags ?? '').split(',').filter(Boolean);
+
+      const matchesSearch = query === '' || title.includes(query) || description.includes(query) || tags.some((t) => t.includes(query));
+      const matchesTags = activeTags.size === 0 || tags.some((t) => activeTags.has(t));
+      const visible = matchesSearch && matchesTags;
+
+      item.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
+    }
+
+    noResults.style.display = visibleCount === 0 ? '' : 'none';
+    if (clearButton) clearButton.style.display = activeTags.size > 0 ? '' : 'none';
+  }
+
+  searchInput.addEventListener('input', applyFilters);
+
+  if (tagFilters) {
+    tagFilters.querySelectorAll<HTMLButtonElement>('.tag-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const tag = chip.dataset.tag!;
+        if (activeTags.has(tag)) {
+          activeTags.delete(tag);
+          chip.classList.remove('active');
+        } else {
+          activeTags.add(tag);
+          chip.classList.add('active');
+        }
+        applyFilters();
+      });
+    });
+  }
+
+  clearButton?.addEventListener('click', () => {
+    activeTags.clear();
+    tagFilters?.querySelectorAll('.tag-chip').forEach((chip) => chip.classList.remove('active'));
+    applyFilters();
+  });
+</script>
