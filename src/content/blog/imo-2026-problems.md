@@ -1,7 +1,7 @@
 ---
 title: "IMO 2026 Problems"
 description: "The six problems from the 2026 International Mathematical Olympiad, held in Shanghai, China — with space left to fill in my own solutions."
-date: 2026-04-18
+date: 2026-07-26
 tags: ["math", "competition"]
 ---
 
