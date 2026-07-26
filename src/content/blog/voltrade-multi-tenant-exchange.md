@@ -1,7 +1,7 @@
 ---
 title: "Building Voltrade: architecture of a hosted, multi-tenant trading-exchange simulator"
 description: "How Voltrade is structured — the registry of independent exchanges, the auth and persistence model, the bot fleet, and the process of getting there."
-date: 2026-04-04
+date: 2026-07-26
 tags: ["engineering", "voltrade"]
 ---
 
