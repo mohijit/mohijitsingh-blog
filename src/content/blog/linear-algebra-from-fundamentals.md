@@ -85,8 +85,9 @@ written down relative to a choice of basis.
 This also explains *why* matrix multiplication is defined the way it is.
 Composing two linear maps, $T$ then $S$, should correspond to some combined
 matrix. If $A$ represents $T$ (columns $T(v_j)$) and $B$ represents $S$, then
-$(S\circ T)(v_j) = S(T(v_j)) = S(\text{$j$-th column of }A) = B\cdot(\text{$j$-th
-column of }A)$. So the $j$-th column of the matrix representing $S\circ T$ is
+$(S\circ T)(v_j) = S(T(v_j)) = S(\text{the }j\text{-th column of }A)$, and
+applying $S$ via its matrix $B$ gives $B$ times that column. So the $j$-th
+column of the matrix representing $S\circ T$ is
 $B$ times the $j$-th column of $A$ — which is exactly the row-times-column rule
 for computing $BA$. Matrix multiplication *is* function composition, written in
 coordinates; it isn't an independent definition you separately have to
