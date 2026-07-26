@@ -1,0 +1,139 @@
+---
+title: "Continuous everywhere, differentiable nowhere: the Weierstrass function"
+description: "Weierstrass's monster shattered the 19th-century belief that a continuous curve must be smooth almost everywhere — a full proof of continuity via the M-test, a real (if not fully sharp) estimate for nowhere-differentiability, and interactive plots showing the partial sums get jagged at every scale."
+date: 2026-07-26
+tags: ["math", "analysis"]
+---
+
+import Chart from '../../components/Chart.astro';
+
+Draw a continuous curve. Take your pen off the paper only where you have to. Chances are it looks smooth almost everywhere, maybe with a handful of sharp corners — the graph of $|x|$, or a piecewise-linear zigzag. Through most of the 19th century, this was more than a drawing habit: it was close to a working assumption. Continuity was widely believed to imply differentiability at "most" points, or at least at all but a sparse set of exceptions, because every continuous function anyone could write down behaved that way. Even Ampère had offered a purported proof, decades earlier, that a continuous function must be differentiable except at isolated points.
+
+It's false. In the 1870s, Karl Weierstrass constructed a function that is continuous at every single real number and differentiable at *none* of them — not "differentiable except on some thin exceptional set," but nowhere, full stop. No tangent line exists anywhere on its graph, despite the graph being a single unbroken curve you could in principle trace without lifting a pen. The construction is a Fourier-flavored infinite sum, and unwinding exactly why it survives as continuous while its differentiability dies completely is one of the cleanest case studies in real analysis for what "rigor" actually buys you over "it looks smooth in the picture."
+
+## The construction
+
+For $0 < a < 1$, $b$ a positive odd integer, define
+
+$$
+f(x) = \sum_{k=0}^{\infty} a^k \cos(b^k \pi x).
+$$
+
+Each term is a cosine wave: amplitude $a^k$, frequency $b^k$ (in the sense that $\cos(b^k\pi x)$ completes $b^k$ full oscillations as $x$ ranges over $[0,2]$). As $k$ grows, $a^k \to 0$ geometrically — each successive wave is smaller — but $b^k \to \infty$ geometrically too — each successive wave is packed tighter. The function is literally an infinite superposition of cosine waves at every dyadic-like scale $b^0, b^1, b^2, \ldots$, each scaled down in height by $a^0, a^1, a^2, \ldots$.
+
+Weierstrass's classical theorem adds one more condition beyond $0<a<1$ and $b$ odd:
+
+$$
+ab > 1 + \frac{3\pi}{2} \approx 5.712.
+$$
+
+It's worth pausing on *why* a condition like this should be needed at all, before treating it as a black box. Differentiate the $k$-th term formally: $\frac{d}{dx}\big[a^k\cos(b^k\pi x)\big] = -a^k b^k \pi \sin(b^k \pi x)$, which has amplitude $\pi (ab)^k$. The amplitude condition $a<1$ was exactly what made the *heights* of the terms shrink, which is what continuity is going to need. But the *slopes* of the terms scale with $(ab)^k$, not $a^k$ — and if $ab>1$, those slopes don't shrink at all, they blow up geometrically as $k\to\infty$. So term $0$ contributes a gentle wave, term $1$ a slightly steeper one, and by term $30$ or so you're formally adding in a wave whose slope is enormous, riding on top of a curve that (because $a<1$) is barely perturbed in height by that same term. Height under control, slope out of control, at every scale simultaneously — that tension is the entire mechanism of this function, and it's why $ab>1$ is the qualitative threshold and the stronger constant $1+\tfrac{3\pi}{2}$ is what a fully rigorous proof of nowhere-differentiability actually needs (that stronger, sharp threshold comes from a careful classical estimate; I'll say honestly below exactly where it enters, without re-deriving the precise constant).
+
+Here's a single low-frequency term by itself — nothing dramatic yet, just a cosine:
+
+<Chart fn="(function(){let s=0;for(let k=0;k<1;k++){s+=Math.pow(0.9,k)*Math.cos(Math.pow(7,k)*Math.PI*x);}return s;})()" domain={[-1, 1]} xLabel="x" yLabel="S₁(x)" />
+
+Throughout, I'll use the concrete pair $a = 0.9$, $b = 7$ ($b$ odd, $ab = 6.3 > 1+\tfrac{3\pi}{2} \approx 5.712$, comfortably satisfying the classical condition).
+
+## Continuity: the easy half, done completely
+
+This direction is genuinely clean, and there's no reason to hand-wave any of it.
+
+Let $S_N(x) = \sum_{k=0}^{N-1} a^k \cos(b^k\pi x)$ denote the $N$-th partial sum. Each $S_N$ is a finite sum of continuous functions (cosines, scaled and composed with linear maps), hence continuous on all of $\mathbb{R}$.
+
+**Uniform convergence, via the Weierstrass M-test.** For every $x \in \mathbb{R}$ and every $k$, $|\cos(b^k\pi x)| \le 1$, so
+$$
+\left|a^k \cos(b^k \pi x)\right| \le a^k =: M_k.
+$$
+Since $0 < a < 1$, $\sum_{k=0}^\infty M_k = \sum_{k=0}^\infty a^k = \frac{1}{1-a}$ converges (geometric series). The M-test says: if $|g_k(x)| \le M_k$ for all $x$ in some domain, with $\sum M_k < \infty$, then $\sum g_k$ converges uniformly on that domain. The proof of the M-test itself is just the Cauchy criterion applied uniformly — for $m > n$,
+$$
+\left|S_m(x) - S_n(x)\right| = \left|\sum_{k=n+1}^{m} a^k\cos(b^k\pi x)\right| \le \sum_{k=n+1}^{m} a^k \le \sum_{k=n+1}^{\infty} a^k = \frac{a^{n+1}}{1-a},
+$$
+and this bound doesn't depend on $x$ or $m$ at all — it only depends on $n$, and it $\to 0$ as $n\to\infty$. So $(S_N)$ is uniformly Cauchy, hence converges uniformly to some limit function, which is by definition $f$.
+
+**A uniform limit of continuous functions is continuous.** This is the other half, and it's worth actually running the $\varepsilon/3$ argument rather than citing it. Fix $x_0 \in \mathbb{R}$ and $\varepsilon > 0$. By uniform convergence, choose $N$ so that $\sup_x |f(x) - S_N(x)| < \varepsilon/3$ (in particular this bounds $|f(x_0)-S_N(x_0)|$ and $|f(x)-S_N(x)|$ for every $x$, with the *same* $N$). Since $S_N$ is continuous at $x_0$, choose $\delta>0$ so that $|x-x_0|<\delta \implies |S_N(x)-S_N(x_0)| < \varepsilon/3$. Then for $|x-x_0|<\delta$,
+$$
+|f(x)-f(x_0)| \le |f(x)-S_N(x)| + |S_N(x)-S_N(x_0)| + |S_N(x_0)-f(x_0)| < \frac{\varepsilon}{3}+\frac{\varepsilon}{3}+\frac{\varepsilon}{3} = \varepsilon.
+$$
+So $f$ is continuous at $x_0$, and since $x_0$ was arbitrary, $f$ is continuous on all of $\mathbb{R}$. $\blacksquare$
+
+Nothing about this argument cares how large $b$ is, or whether $ab$ exceeds $1+\tfrac{3\pi}{2}$ — continuity only ever used $0<a<1$. That asymmetry (continuity is cheap; differentiability, next, is expensive and needs the extra hypothesis) is the whole point of the post.
+
+Two more terms already show the roughening, even though every one of these partial sums is, individually, a perfectly smooth, differentiable finite trigonometric sum:
+
+<Chart fn="(function(){let s=0;for(let k=0;k<2;k++){s+=Math.pow(0.9,k)*Math.cos(Math.pow(7,k)*Math.PI*x);}return s;})()" domain={[-1, 1]} xLabel="x" yLabel="S₂(x)" />
+
+<Chart fn="(function(){let s=0;for(let k=0;k<4;k++){s+=Math.pow(0.9,k)*Math.cos(Math.pow(7,k)*Math.PI*x);}return s;})()" domain={[-1, 1]} samples={3000} xLabel="x" yLabel="S₄(x)" />
+
+By four terms the curve is visibly ragged. But *finite* sums of smooth functions are always smooth — $S_4$ has a well-defined derivative everywhere, and so does $S_N$ for every finite $N$. Differentiability only breaks in the limit $N\to\infty$, and it breaks completely. That's the part that needs a real argument, because "it looks jagged in the picture" is not a proof — a function can look rough at the resolution of a plot and still be differentiable (its derivative could just be large, or oscillate a lot, without failing to exist).
+
+## Non-differentiability: the real mechanism
+
+Fix any point $x_0 \in \mathbb{R}$ — the argument has to work at *every* point, which is the entire content of "nowhere differentiable." The strategy is to exhibit a specific sequence of points marching in on $x_0$ along which the difference quotient fails to settle down to any finite limit.
+
+**Choosing the approach.** For each positive integer $m$, let $\alpha_m$ be the integer nearest to $b^m x_0$, and write
+$$
+b^m x_0 = \alpha_m + \theta_m, \qquad \theta_m \in \left[-\tfrac12, \tfrac12\right].
+$$
+Define
+$$
+\delta_m = \frac{1-\theta_m}{b^m}, \qquad \text{so that} \qquad b^m(x_0+\delta_m) = \alpha_m + 1,
+$$
+an exact integer. This is the key trick: $\delta_m$ is chosen so that at exactly the $k=m$ scale, the argument of the cosine lands exactly on a multiple of $\pi$, where $\cos$ takes its extreme value $\pm1$. Since $\theta_m \in [-\tfrac12,\tfrac12]$, $\delta_m \in \big[\tfrac{1}{2b^m}, \tfrac{3}{2b^m}\big]$ — in particular $\delta_m > 0$ and $\delta_m \to 0$ as $m \to \infty$, so $x_0 + \delta_m \to x_0$.
+
+Now look at the difference quotient, split by frequency band:
+$$
+Q_m := \frac{f(x_0+\delta_m)-f(x_0)}{\delta_m} = \underbrace{\sum_{k=0}^{m-1}(\cdots)}_{A_m,\ \text{low}} + \underbrace{(\cdots)_{k=m}}_{B_m,\ \text{the hinge}} + \underbrace{\sum_{k=m+1}^{\infty}(\cdots)}_{C_m,\ \text{high tail}}.
+$$
+
+**Low frequencies ($A_m$, $k<m$): bounded by the mean value theorem.** For fixed $k$, $\cos(b^k\pi x)$ has derivative bounded by $b^k\pi$ in magnitude, so by the MVT,
+$$
+\left|\cos(b^k\pi(x_0+\delta_m)) - \cos(b^k\pi x_0)\right| \le b^k \pi\, \delta_m.
+$$
+Summing,
+$$
+|A_m| \le \sum_{k=0}^{m-1} a^k b^k \pi\, \delta_m = \pi\delta_m\sum_{k=0}^{m-1}(ab)^k = \pi\delta_m\cdot\frac{(ab)^m-1}{ab-1} < \frac{\pi}{ab-1}(ab)^m\delta_m,
+$$
+so $|A_m|/\delta_m < \dfrac{\pi}{ab-1}(ab)^m$ — this is exactly the finitely-many-smooth-terms piece, and it grows no faster than $(ab)^m$.
+
+**The hinge term ($B_m$, $k=m$): where the specific choice of $\delta_m$ pays off.** By construction $b^m(x_0+\delta_m)=\alpha_m+1$, so $\cos(b^m\pi(x_0+\delta_m)) = \cos((\alpha_m+1)\pi) = (-1)^{\alpha_m+1}$. And $\cos(b^m\pi x_0) = \cos((\alpha_m+\theta_m)\pi) = (-1)^{\alpha_m}\cos(\theta_m\pi)$ (using $\sin(\alpha_m\pi)=0$ since $\alpha_m\in\mathbb{Z}$). So the numerator of the $k=m$ term is
+$$
+(-1)^{\alpha_m+1} - (-1)^{\alpha_m}\cos(\theta_m\pi) = -(-1)^{\alpha_m}\big[1+\cos(\theta_m\pi)\big].
+$$
+Since $\theta_m \in [-\tfrac12,\tfrac12]$, $\cos(\theta_m\pi) \in [0,1]$, so the bracket lies in $[1,2]$ — it is bounded *away from zero*, uniformly in $m$. Dividing by $\delta_m \le \tfrac{3}{2b^m}$ gives
+$$
+|B_m| = a^m\cdot\frac{1+\cos(\theta_m\pi)}{\delta_m} \ge a^m \cdot \frac{1}{3/(2b^m)} = \frac{2}{3}(ab)^m.
+$$
+This is the whole engine of the proof: one single term, isolated by the specific choice of $\delta_m$, contributes a difference quotient of size at least a fixed constant times $(ab)^m$ — genuinely unbounded, since $ab>1$.
+
+**The high tail ($C_m$, $k>m$): crudely bounded.** Using $|\cos u - \cos v|\le 2$ and $\delta_m \ge \tfrac{1}{2b^m}$,
+$$
+|C_m| \le \sum_{k=m+1}^\infty a^k \cdot \frac{2}{\delta_m} \le \frac{2}{\delta_m}\cdot\frac{a^{m+1}}{1-a} \le 4b^m \cdot \frac{a^{m+1}}{1-a} = \frac{4a}{1-a}(ab)^m.
+$$
+
+**Putting it together.** By the triangle inequality,
+$$
+\begin{aligned}
+|Q_m| &\ge |B_m| - |A_m| - |C_m| \\
+&\ge (ab)^m\left[\frac{2}{3} - \frac{\pi}{ab-1} - \frac{4a}{1-a}\right].
+\end{aligned}
+$$
+If the bracketed constant is positive, $|Q_m| \to \infty$ as $m\to\infty$ along the sequence $x_0+\delta_m \to x_0$, so the difference quotient is unbounded — no finite derivative $f'(x_0)$ can exist. And crucially, none of this argument depended on which $x_0$ we started with, so it applies at *every* point simultaneously.
+
+I want to be straightforward about what's rigorous here and what isn't. The three bounds on $A_m$, $B_m$, $C_m$ above are genuine, checkable estimates — this is the actual shape of the classical proof (essentially the version in Rudin's *Principles of Mathematical Analysis*), not a hand-wave. What I'm *not* doing is the careful optimization that turns "make the bracket positive" into the sharp, general classical constant $ab > 1+\tfrac{3\pi}{2}$ — my bracket above, evaluated crudely, is a looser sufficient condition than the sharp one, and pinning down exactly how loose (and tightening it to the textbook constant) is real, somewhat tedious bookkeeping that I'm not reproducing line by line. The concrete pair used in this post, $a=0.9,\ b=7$, satisfies the sharp classical condition with room to spare, so the theorem applies to it regardless.
+
+This is exactly where the low/high split in the charts matters. Zoom into $f$ near any point, at any scale, and you're looking at a superposition where finitely many "slow" terms behave like a smooth background (the $A_m$ piece — tame, bounded by the MVT) while there is always some band of terms whose frequency is comparable to your zoom level, contributing slope on the order of $(ab)^m$ at that scale (the $B_m$/$C_m$ pieces) — and that contribution never shrinks away no matter how far in you zoom, because $ab>1$. Eight terms, still on the original scale:
+
+<Chart fn="(function(){let s=0;for(let k=0;k<8;k++){s+=Math.pow(0.9,k)*Math.cos(Math.pow(7,k)*Math.PI*x);}return s;})()" domain={[-0.0005, 0.0005]} samples={3500} xLabel="x" yLabel="S₈(x)" />
+
+That's the same eight-term partial sum $S_8$, but plotted on a window of width $0.001$ around $0$ — about two thousand times narrower than the earlier plots. It's exactly as jagged, at this microscopic scale, as $S_4$ was on the original scale. Nothing smooths out under magnification, because the high-frequency terms that dominate at this zoom level ($k$ around $6$–$7$, with wavelength comparable to the window) are still there, still contributing slope of order $(ab)^k$.
+
+Push to sixteen terms and zoom in by another factor of roughly $10^{10}$, down to a window about $10^{-10}$ wide, and the same thing happens again — the newly-added high-$k$ terms (wavelength comparable to *this* tiny window) take over and the curve is, once again, exactly as rough as it was at every previous scale:
+
+<Chart fn="(function(){let s=0;for(let k=0;k<16;k++){s+=Math.pow(0.9,k)*Math.cos(Math.pow(7,k)*Math.PI*x);}return s;})()" domain={[-7e-11, 7e-11]} samples={4000} xLabel="x" yLabel="S₁₆(x)" />
+
+This is not a coincidence of the specific window sizes I picked — it's forced by the structure of the proof. At every scale $b^{-m}$, there is a term of the series (the one with $k\approx m$) whose amplitude has shrunk just enough to keep the function continuous, but whose slope, $(ab)^m$, has grown, and grown by exactly the same geometric factor at every scale. There is no scale at which the roughness runs out.
+
+## Why this mattered, and where it echoes
+
+Weierstrass presented this construction in 1872, in a paper read to the Berlin Academy of Sciences, at a moment when analysis was in the middle of being rebuilt on epsilon-delta foundations rather than geometric intuition about curves — Cauchy, Bolzano, and Weierstrass himself had spent decades replacing "obviously true from the picture" with statements that could actually be checked from the definitions of limit, continuity, and derivative. The Weierstrass function is the sharpest possible demonstration of why that program mattered: it is a legitimate counterexample to a claim that had been treated as geometrically self-evident, constructed from tools (an infinite series, term-by-term estimates, the M-test) that only work because the definitions were made precise enough to apply them. It's usually counted among the first of the "pathological" or "monster" functions and sets that forced 19th- and early 20th-century mathematicians to stop trusting pictures as proofs — a lineage that continues through nowhere-differentiable and self-similar constructions in what became fractal geometry, and, later, through probability theory: it's a theorem that the sample paths of Brownian motion are, with probability $1$, continuous everywhere and differentiable nowhere, by a mechanism that — roughly, not literally the same estimates — has the same flavor as this one, fine-scale randomness whose *amplitude* shrinks fast enough for continuity but whose *local slope* never settles down. The picture changed permanently: "continuous" and "smooth" were never really synonyms, but after 1872 nobody could pretend the gap between them was small.

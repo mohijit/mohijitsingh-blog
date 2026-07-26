@@ -1,0 +1,157 @@
+---
+title: "Finding alpha is a search problem, not a prediction problem"
+description: "Why a real trading edge is hard in a way that ordinary predictive modeling isn't — an adversarial, non-stationary opponent, the stationarity trap, overfitting with correlated rows, and what small versus large datasets actually demand of you."
+date: 2026-07-26
+tags: ["trading", "quant"]
+---
+
+import Chart from '../../components/Chart.astro';
+
+Most predictive modeling problems get to assume the thing being modeled holds still while you study it. Train a classifier on last year's spam and it keeps working on next year's spam, because the process generating spam email hasn't reorganized itself around your classifier. Financial markets don't extend that courtesy, and the reason isn't a technical inconvenience you can engineer around — it's structural. A market is made of participants who are themselves searching for the exact regularity you just found, and the moment enough of them find it and trade on it, the regularity shrinks or disappears — not because your model was wrong, but because your model's own success, and everyone else's searching in the same space, changed the thing being modeled. Layer on top of that the fact that the market's rules, participants, and regimes keep shifting anyway, for reasons that have nothing to do with anyone's model. That combination — an opponent that reacts to you, on a target that moves on its own regardless — is what makes finding alpha categorically different from inference on a fixed distribution, and it's why most of the standard machine-learning playbook needs real modification, not just careful application, before it's safe to use here.
+
+## What "alpha" actually claims
+
+It's worth being precise about the word before doing anything else with it, because sloppiness here is where a lot of self-deception starts. Alpha is not "a strategy that made money." It's a *persistent, risk-adjusted* excess return — persistent meaning it holds up out of sample and after costs, not just on the data used to find it; risk-adjusted meaning it isn't just compensation for exposure to some source of risk you'd have been paid for passively. The standard way to express that is a factor regression: for an asset or strategy $i$,
+
+$$
+r_{i,t} - r_{f,t} = \alpha_i + \beta_i \, (r_{m,t} - r_{f,t}) + \varepsilon_{i,t}
+$$
+
+where $r_{f,t}$ is the risk-free rate and $r_{m,t}$ is the return on some benchmark or factor. $\alpha_i$ is what's left of the average return after you've backed out the part explained by exposure to $\beta_i$ units of that factor. A positive historical $\alpha_i$ that disappears once you add a second, better-chosen factor to the right-hand side was never alpha — it was an unlabeled risk exposure wearing alpha's clothes. This is, incidentally, part of why the academic finance literature went through its own crisis of confidence: enough proposed "factors" got published, each one explaining away someone else's alpha, that people started calling the resulting pile-up a factor zoo — more claimed sources of return than can plausibly all be distinct, non-overlapping compensations for risk. The lesson generalizes past that specific episode: before you believe a number is alpha, ask what it survives being regressed against.
+
+The other quantity worth having a name for is the Sharpe ratio, $SR = \dfrac{E[r_p] - r_f}{\sigma(r_p)}$, which measures excess return per unit of volatility rather than in absolute terms — necessary because a strategy that returns more only by taking on proportionally more risk hasn't demonstrated anything interesting. And for the research stage, before there's a strategy to compute a Sharpe ratio for at all, there's the information coefficient: if $s_{i,t}$ is a signal's score for asset $i$ at time $t$ and $r_{i,t+1}$ is the realized forward return, $IC_t = \mathrm{corr}(s_{i,t}, r_{i,t+1})$ across the cross-section, usually as a rank correlation to keep a handful of outliers from dominating it. A real signal has a small but reliably positive average IC. "Small but reliable" is doing a lot of work in that sentence, and it's the right expectation to hold onto for everything that follows.
+
+## Why the target moves: crowding
+
+Here's the mechanism that makes "persistent" the hard word in that definition. Suppose a signal genuinely has predictive power — its average IC is reliably positive. The moment it's discovered, by you or by anyone else, and enough capital starts trading on it, its own effect on prices starts working against it: buying pressure from everyone exploiting the same signal pushes prices toward where the signal said they should already be, compressing the very mispricing the signal was measuring. This isn't a hypothetical — it's the standard life cycle of a documented factor. Momentum and value effects, for instance, are among the more extensively studied return patterns in the academic literature, and even there the honest discussion is about how their measured strength has evolved once they became widely known and widely traded, not whether they exist in some platonic, unchanging form.
+
+The chart below is a schematic, not a measurement of any real signal — small illustrative numbers meant only to show the shape of the effect: average out-of-sample IC declining as a signal goes from private to discovered to crowded.
+
+<Chart
+  data={[
+    { t: 0, ic: 0.060 },
+    { t: 2, ic: 0.046 },
+    { t: 4, ic: 0.035 },
+    { t: 6, ic: 0.027 },
+    { t: 8, ic: 0.022 },
+    { t: 10, ic: 0.017 },
+    { t: 12, ic: 0.014 },
+    { t: 14, ic: 0.012 },
+    { t: 16, ic: 0.010 },
+    { t: 18, ic: 0.009 },
+    { t: 20, ic: 0.008 },
+    { t: 22, ic: 0.007 },
+    { t: 24, ic: 0.007 },
+  ]}
+  marks={[{ type: 'line', x: 't', y: 'ic', stroke: '#3b82f6' }]}
+  xLabel="Months since a signal becomes broadly known"
+  yLabel="Average out-of-sample IC (schematic)"
+/>
+
+The curve flattens rather than hitting zero, which is also the honest part of the shape: crowding erodes an edge toward the cost of implementing against it, not necessarily all the way to nothing, and the residual that survives is usually smaller than what a backtest over the "before crowding" period reported. Note also that this is a distinct idea from *signal decay over forecast horizon* — the fact that a signal computed today typically predicts tomorrow's return better than it predicts return twenty days out. Both are called "decay" informally; they're different curves with different causes, and it's worth keeping them separate in your own head even when the vocabulary doesn't.
+
+## Stationarity, and why prices are the wrong thing to regress
+
+A process is (weakly) stationary if its mean, variance, and autocovariance structure don't change over the sample — the statistical character of the thing you're measuring in month one is the same as in month two hundred. This matters enormously for what you're allowed to do with standard statistical machinery, most of which is built and validated under exactly that assumption.
+
+Price levels are typically not stationary. A price series behaves, to a reasonable first approximation, like a random walk with a slowly drifting level: $P_t = P_{t-1} + \varepsilon_t$. Its variance grows with the length of the window you look at, it has no fixed mean to revert to, and its statistical character over any finite sample depends on where that sample happens to sit. Log returns, $r_t = \log P_t - \log P_{t-1}$, are much closer to stationary — differencing removes the unit root — though even they aren't perfectly stationary in practice: volatility clusters into calm and turbulent regimes, and the distribution of returns during a liquidity crisis is not the distribution of returns during a quiet summer. "Closer to stationary" is the honest claim, not "stationary." This is the concrete reason quantitative research almost always models returns rather than price levels: regressing on a series whose statistical properties depend on where you happened to start measuring it isn't estimating a fixed relationship, it's estimating a relationship contaminated by wherever the sample window landed.
+
+The failure mode this produces has a name in econometrics: spurious regression. Take two genuinely independent random walks — no causal link, no shared driver, nothing connecting them except that both are non-stationary. Regress one on the other. The textbook intuition, calibrated on stationary data, says you should get a slope near zero and an unimpressive $R^2$. What you actually tend to get is disturbingly different, because two unrelated random walks can easily drift in a way that looks related over any given finite window, purely from each one's own accumulated noise, and the standard OLS significance machinery — which assumes stationarity to justify its asymptotics — doesn't warn you about it.
+
+To make this concrete rather than asserted: below are two independently simulated Gaussian random walks over 40 steps, generated from unrelated random seeds with no relationship built in whatsoever. In this particular realization, the sample correlation between them comes out to $r \approx -0.97$ ($R^2 \approx 0.94$) — the kind of number that, reported without context, would read as an extremely strong, "significant" relationship.
+
+<Chart
+  data={[
+    { t: 0, walkA: -1.17, walkB: -2.09 },
+    { t: 1, walkA: -0.36, walkB: -1.93 },
+    { t: 2, walkA: -0.08, walkB: -1.91 },
+    { t: 3, walkA: -0.13, walkB: -0.97 },
+    { t: 4, walkA: -1.32, walkB: -0.88 },
+    { t: 5, walkA: -3.82, walkB: -0.30 },
+    { t: 6, walkA: -3.92, walkB: 0.17 },
+    { t: 7, walkA: -3.45, walkB: -0.09 },
+    { t: 8, walkA: -3.86, walkB: -1.00 },
+    { t: 9, walkA: -3.85, walkB: -1.36 },
+    { t: 10, walkA: -3.88, walkB: -0.98 },
+    { t: 11, walkA: -2.03, walkB: -1.16 },
+    { t: 12, walkA: -2.87, walkB: -0.45 },
+    { t: 13, walkA: -4.18, walkB: 0.35 },
+    { t: 14, walkA: -5.06, walkB: 1.33 },
+    { t: 15, walkA: -4.53, walkB: 1.55 },
+    { t: 16, walkA: -3.63, walkB: 1.55 },
+    { t: 17, walkA: -3.56, walkB: 1.49 },
+    { t: 18, walkA: -3.65, walkB: 0.17 },
+    { t: 19, walkA: -3.88, walkB: -0.49 },
+    { t: 20, walkA: -2.87, walkB: 0.90 },
+    { t: 21, walkA: -5.12, walkB: 1.98 },
+    { t: 22, walkA: -6.19, walkB: 3.82 },
+    { t: 23, walkA: -6.90, walkB: 4.43 },
+    { t: 24, walkA: -9.99, walkB: 5.72 },
+    { t: 25, walkA: -10.15, walkB: 7.38 },
+    { t: 26, walkA: -9.09, walkB: 8.00 },
+    { t: 27, walkA: -9.17, walkB: 7.57 },
+    { t: 28, walkA: -11.23, walkB: 7.95 },
+    { t: 29, walkA: -10.25, walkB: 8.05 },
+    { t: 30, walkA: -10.76, walkB: 9.00 },
+    { t: 31, walkA: -10.64, walkB: 10.38 },
+    { t: 32, walkA: -12.68, walkB: 10.32 },
+    { t: 33, walkA: -12.94, walkB: 10.83 },
+    { t: 34, walkA: -13.80, walkB: 11.47 },
+    { t: 35, walkA: -14.02, walkB: 10.24 },
+    { t: 36, walkA: -14.42, walkB: 10.53 },
+    { t: 37, walkA: -15.65, walkB: 10.74 },
+    { t: 38, walkA: -15.59, walkB: 10.81 },
+    { t: 39, walkA: -14.14, walkB: 12.63 },
+    { t: 40, walkA: -14.99, walkB: 13.84 },
+  ]}
+  marks={[
+    { type: 'line', x: 't', y: 'walkA', stroke: '#e07b39' },
+    { type: 'line', x: 't', y: 'walkB', stroke: '#3b82f6' },
+  ]}
+  xLabel="t"
+  yLabel="Cumulative value (independent random walks)"
+/>
+
+The orange and blue lines are each the cumulative sum of their own independent Gaussian noise — nothing else. I should be direct about how this particular example was produced: I simulated a number of independent pairs and picked one with an unusually strong coincidental correlation, specifically because a weak, unremarkable pair wouldn't make the point vividly. That's not a trick — it's the point, doubled. A meaningful fraction of independent random-walk pairs will show a strong spurious correlation over a given window just by chance, and searching until you find a "good-looking" one is a miniature version of exactly the data-snooping problem the next section is about. Two non-stationary series can look tightly related over a finite sample for no reason at all, and the more pairs (or the more model variants) you're willing to search over, the easier it is to find one that does.
+
+## Overfitting, but with correlated rows and a search you don't remember making
+
+The generic warning about overfitting — too many free parameters relative to your data — applies here too, but it shows up in domain-specific ways that the generic warning doesn't prepare you for.
+
+The first is that a financial time series has far fewer independent observations than its row count suggests. Ten years of daily data is roughly 2,500 rows, but daily returns and the signals built on them are serially correlated — volatility clusters, slow-moving macro signals barely change week to week, and any given day's outcome carries information already partly present in its neighbors. The *effective* sample size — the number of statistically independent pieces of evidence actually informing your estimate — can be a small fraction of the row count, more so for slower, smoother signals than for genuinely high-frequency ones. Treating 2,500 autocorrelated rows as 2,500 independent draws when computing a standard error is a real and common way to be far more confident than the data supports.
+
+The second is data snooping in the specific form of multiple testing: try enough signals, parameter combinations, or entry rules against the same historical sample, and some will look good by chance alone, with no adjustment for how many you tried. There's a body of work in the quant literature, sometimes discussed under the name deflated Sharpe ratio, aimed at correcting for exactly this — discounting a reported performance number by an estimate of how much of it is attributable to the size of the search that produced it, rather than treating the best result out of many trials as if it were the only trial run. I won't reproduce a specific formula here, both because getting the details right matters more than I can responsibly assert from memory and because the useful takeaway doesn't depend on the formula: if you tried $N$ things and kept the best, the honest performance estimate for what you kept is worse than the raw number you saw, and by more as $N$ grows.
+
+The third is look-ahead bias — using information that was not actually available at the moment a decision would have been made. The clean example is fundamentals data: a company's reported earnings for a given quarter are frequently restated in later filings, and a backtest that pulls "the earnings for Q2 2019" from a database queried today is often silently pulling the *restated* number, not the number that existed in the world when a trader in 2019 would have had to act. The same failure shows up in survivorship-biased universes — backtesting against today's index constituent list applied to twenty years of history quietly erases every company that was delisted, acquired in distress, or went bankrupt along the way, which flatters any strategy that would have held some of them. Both are instances of the same underlying mistake: using a version of history that only exists because you already know how it turned out.
+
+## Large datasets and small datasets fail differently
+
+It's tempting to give one piece of generic advice — "be careful about overfitting" — and stop there, but the actual failure mode, and the actual fix, depends heavily on which side of the data-size divide you're on.
+
+With **large datasets** — high-frequency tick data, broad cross-sectional equity panels spanning thousands of names — the danger is rarely "too few data points" in the naive sense. It's subtler: microstructure noise that looks like signal at high frequency but is really an artifact of how orders get matched and reported; a large sample that's still dominated, in effective terms, by one or two market regimes, so a model that looks robust across "ten years of data" may really only have been tested against one persistent macro backdrop; and infrastructure correctness — survivorship in the universe, corporate-action adjustments (splits, dividends, symbol changes) applied consistently, timestamps aligned across venues and time zones. None of that is a statistics problem, and all of it can silently invalidate a statistically impeccable result. On the validation side specifically, plain k-fold cross-validation is close to guaranteed to leak information in this setting: shuffling rows breaks the time ordering, so training folds end up containing observations from time periods adjacent to — and therefore correlated with — the test fold, which lets the model implicitly see information related to what it's being tested on. Walk-forward validation (train on a past window, test on the following window, roll forward) respects the arrow of time directly; purged and embargoed cross-validation is the more surgical fix, removing training samples whose outcome-computation window overlaps the test window, and adding a buffer period after each test fold before resuming eligible training data, specifically to stop short-horizon serial correlation from crossing the train/test boundary.
+
+With **small datasets** — a handful of macro regimes, a newly listed or illiquid market, a single asset with a multi-decade but low-frequency history — the problem isn't leakage mechanics, it's a genuine information deficit that no amount of correct cross-validation technique repairs. If you're claiming a signal works "across recessions" and your entire sample contains three recessions, you have three independent regime-observations, not the hundreds of rows the raw data might suggest, and no clever validation scheme manufactures a fourth. The right response is to be more skeptical by default: lean harder on an economic or structural rationale for why the effect should exist mechanically, rather than accepting "it fits the historical data" as sufficient justification on its own; prefer simpler models with fewer free parameters, because with less independent data every additional parameter is a proportionally larger opportunity to fit noise; and be willing to say plainly that some questions cannot be rigorously answered with the data actually available, rather than forcing a confident answer out of an underpowered sample.
+
+## Where to actually look
+
+None of this is a solved problem you can outsource to a reading list, but there are real categories of resources worth knowing exist, as starting points rather than final answers. The academic literature on factor investing — the Fama-French multi-factor framework and the broader empirical work on documented return patterns like value and momentum — is the right place to understand what's been proposed, what has and hasn't held up under scrutiny, and how researchers in the field actually argue about robustness. Market microstructure, as a subject distinct from factor investing, is its own literature; standard references in that space, such as Larry Harris's *Trading and Exchanges* and Maureen O'Hara's work on microstructure theory, are worth knowing about if you're working anywhere near execution, order books, or transaction costs rather than pure signal research. On data, academic finance research on U.S. equities standardly draws on datasets like CRSP and Compustat, typically accessed through university or institutional subscriptions (commonly via WRDS), for return histories and fundamentals with reasonable point-in-time discipline; outside of that, exchanges and commercial data vendors sell historical and real-time market data at varying levels of granularity and cost, and evaluating any given vendor's data quality — survivorship handling, corporate-action adjustments, timestamp integrity — is itself part of the work, not a solved prerequisite to it. Treat all of this as pointing at categories worth exploring, not as a shortcut past doing the work yourself.
+
+## The mistakes that keep showing up
+
+A short, real list, because naming these precisely is more useful than a vague caution to "be careful."
+
+**Survivorship bias.** Covered above in its look-ahead form, but it's worth restating as its own mistake because it's so easy to introduce by accident just by using whatever instrument list is convenient today.
+
+**Mistaking in-sample overfitting for skill.** The strategy that best fits the historical sample you tuned it on is not the strategy most likely to keep working — it's the strategy most likely to have absorbed that sample's specific noise. A great backtest number, by itself, is weak evidence of anything.
+
+**Ignoring transaction costs, market impact, and slippage.** A backtest that fills every trade at the observed price, with no spread, no commission, and no price impact from the trade itself, is measuring a strategy that doesn't exist. Real execution costs are frequently a larger fraction of a genuinely small edge than people assume, especially for anything with meaningful turnover, and they scale with how much capital you actually try to trade the signal with.
+
+**Confusing a signal's correlation with its post-cost tradability.** A signal can have a real, statistically genuine information coefficient and still not be a tradable strategy, because capturing it requires more turnover, more capacity, or more liquidity than the instruments it applies to can actually absorb without moving the price against you. Statistical significance of the signal and economic viability of a strategy built on it are separate questions, and answering the first tells you nothing conclusive about the second.
+
+**"More data means more truth."** Extra rows only help to the extent they carry new, independent information about the phenomenon you're studying. Adding more highly correlated assets, sampling more finely within the same regime, or extending a history that's still dominated by the same macro backdrop can inflate the row count without meaningfully inflating the effective sample size — and treating it as if it did is a direct route back to the overconfidence problem from the overfitting section.
+
+## The actual skill
+
+Everything above points at the same conclusion from different directions: an adversarial, non-stationary target; series whose own non-stationarity can manufacture fake relationships; correlated rows that make your sample smaller than it looks; searches over signals and parameters that quietly inflate your apparent success. None of these are solved by finding a cleverer model. They're solved, to the extent they can be solved at all, by correctly estimating your own uncertainty — being willing to say a result is weaker than it looks, that a backtest number is not the same thing as a live edge, that "I don't have enough data to know" is sometimes the honest answer rather than a failure to look hard enough. Deliberately, this post hasn't handed over a signal or a strategy that would actually make money if it did — that's not an omission, it's the point: real edges are small, they decay once they're known, and a blog post is exactly the kind of thing that makes a signal known. What's transferable is the process, not a shortcut around it.
+
+That epistemic discipline gets tested hardest at exactly the moment it feels least necessary — when a backtest looks good. There's a specific, well-documented mechanism by which the process of refining a strategy against its own historical results makes the reported numbers better while making them less trustworthy, and it's subtle enough to deserve its own treatment. That's coming next.

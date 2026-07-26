@@ -1,0 +1,267 @@
+---
+title: "Backtests: convincing and untrustworthy"
+description: "The more a strategy backtest is refined, the better it looks and the less it should be trusted — the statistical mechanism behind that, and what actually helps."
+date: 2026-07-26
+tags: ["trading", "quant"]
+---
+
+import Chart from '../../components/Chart.astro';
+
+Here is a strategy backtest that has been iterated on fifty times: parameters
+tuned against the historical data, filters added to cut the worst trades,
+edge cases handled one by one as they turned up. Here is the same strategy's
+very first, naive version, tested once and left alone. The refined version
+has a better Sharpe ratio, a smoother equity curve, fewer drawdowns, and a
+much more convincing story attached to every design choice. It looks, by
+every visible measure, like the more rigorous piece of work.
+
+It is also, typically, the less trustworthy one going forward.
+
+That should feel wrong. More iteration, more care, more attention to the
+edge cases that broke the naive version — surely that's what separates a
+serious backtest from an amateur one. Sit with the discomfort for a moment,
+because it's pointing at something real: the process that makes a backtest
+*look* better and the process that makes it *perform* better in the future
+are not the same process, and past a certain point they actively pull in
+opposite directions.
+
+## The resolution: refinement is another look at the same data
+
+A backtest is a measurement against one fixed, finite sample of history.
+Every time you change a lookback window, add a filter, or exclude a category
+of trade, you are producing a new estimate of the strategy's performance —
+against *that same sample*. If you keep the change when the number improves
+and discard it when the number gets worse, you're not refining a strategy.
+You're running a selection process over a fixed dataset and keeping whatever
+happened to fit it best.
+
+Here's why that's dangerous even when every individual step feels
+reasonable. Suppose you test $N$ variations of a strategy — different
+thresholds, different filters, different entry rules — against the same
+historical window. Each variation's backtested Sharpe ratio is some true,
+underlying Sharpe ratio plus noise contributed by the finiteness of the
+sample:
+
+$$
+\hat{S}_i = S_i + \varepsilon_i, \qquad i = 1, \dots, N
+$$
+
+where $S_i$ is what variation $i$ would actually deliver over an infinite
+amount of future data drawn from the same process, and $\varepsilon_i$ is
+sampling noise — the part of the historical result that's specific to
+*this* stretch of history and won't repeat.
+
+If you now report the best result you found, $\max_i \hat{S}_i$, you are not
+reporting an estimate of $\max_i S_i$, the true performance of the best
+underlying variation. You're reporting something biased upward from it,
+and the bias grows with $N$:
+
+$$
+\mathbb{E}\left[\max_{1 \le i \le N} \hat{S}_i\right] \; > \; \max_{1 \le i \le N} S_i
+$$
+
+The intuition is the same one behind "look how good the best of many random
+guesses looks": if you ask a hundred people to guess a number and take the
+closest guess, that guess will look impressively accurate even if every
+guesser was equally uninformed — you've selected for whoever got lucky, not
+for whoever was good. The same thing happens with a fixed historical sample:
+some noise realizations happen to align favorably with some parameter
+choices, and searching over $N$ choices is precisely a search for the
+alignment that flatters the number most. The more variations you try, the
+more chances you give noise to produce an impressive-looking outlier, purely
+by chance, with nothing to do with real edge.
+
+To be precise about the limits of this argument: I'm not deriving an exact
+closed form for the size of this bias in general — that depends on how
+correlated the variations are with each other and on the distribution of
+$\varepsilon_i$, and real strategy variations are usually highly correlated
+with each other (a lookback of 20 days and 22 days aren't independent
+draws). But the qualitative shape is well established and doesn't depend on
+those details: for $N$ genuinely independent noisy draws, the expected
+maximum grows with $N$ — roughly with $\sqrt{\ln N}$ for the common textbook
+case of independent Gaussian noise, which is a slow-growing but *relentless*
+function. It keeps climbing. It never plateaus and turns around just
+because you tried enough things. That single fact is the entire engine
+behind the paradox: search harder over the same fixed sample, and the
+best-looking result gets better, without the truth underneath it changing
+at all.
+
+The chart below is not a real backtest. It's a schematic illustration, with
+small hand-picked synthetic numbers, of the mechanism just described: the
+best in-sample number found so far climbing as more variations are tried
+against a fixed historical sample, against the true out-of-sample
+performance of whatever gets selected at each stage, which does not climb
+with it.
+
+<Chart
+  data={[
+    { n: 1, bestInSample: 0.31, trueOOS: 0.29 },
+    { n: 5, bestInSample: 0.58, trueOOS: 0.31 },
+    { n: 10, bestInSample: 0.74, trueOOS: 0.28 },
+    { n: 20, bestInSample: 0.92, trueOOS: 0.30 },
+    { n: 30, bestInSample: 1.02, trueOOS: 0.27 },
+    { n: 50, bestInSample: 1.18, trueOOS: 0.29 },
+    { n: 75, bestInSample: 1.31, trueOOS: 0.26 },
+    { n: 100, bestInSample: 1.40, trueOOS: 0.28 },
+    { n: 150, bestInSample: 1.52, trueOOS: 0.25 },
+    { n: 200, bestInSample: 1.61, trueOOS: 0.27 },
+  ]}
+  marks={[
+    { type: 'line', x: 'n', y: 'bestInSample', stroke: '#e07b39' },
+    { type: 'line', x: 'n', y: 'trueOOS', stroke: '#3b82f6' },
+  ]}
+  xLabel="Number of variations tried (N)"
+  yLabel="Sharpe ratio"
+/>
+
+The orange line is the best in-sample Sharpe ratio found so far as the
+search widens — it climbs steadily, the way a "we tried 200 variants and
+found a great one" result always does. The blue line is the true
+out-of-sample Sharpe of whatever variant that search actually lands on at
+each stage — flat, noisy around the same small number the very first naive
+attempt produced, because the underlying edge never changed. Only the
+search got wider. Again: illustrative numbers, chosen to make the shape
+clear, not a real result from any strategy.
+
+## The five ways it creeps in
+
+None of these require dishonesty. They happen inside an ordinary, careful
+research process, which is exactly what makes them dangerous.
+
+**Data snooping.** You have one historical dataset and a long list of
+candidate signals — moving average crossovers, volatility breakouts,
+earnings drift, whatever. You test them one after another against the same
+history, keep the ones that show promise, and move on from the ones that
+don't. Nothing about this feels different from ordinary exploratory
+research. But if you tried thirty signals and kept the two that worked,
+without ever writing down that you tried thirty, you've thrown away the one
+piece of information — the $N$ in the argument above — that would let
+anyone (including you) judge whether "worked" means anything.
+
+**Parameter overfitting.** The signal is real enough to keep, but the exact
+lookback window, entry threshold, and stop-loss level get tuned by sweeping
+across a grid and picking whichever combination maximizes the historical
+Sharpe. This is data snooping's close cousin, but it's easier to miss
+because it doesn't feel like trying "different strategies" — it feels like
+calibrating one strategy. Statistically it's identical: each grid point is
+another $\hat S_i$, and the grid search is another max-of-$N$ selection,
+just over a continuous space instead of a discrete list of ideas.
+
+**Selection bias in ideas.** Across a research program spanning months, you
+pursue the threads that showed early promise and quietly stop working on
+the ones that didn't. The strategies that survive to become "the strategy"
+are not a representative sample of everything you tried — they're the
+subset that happened to look good on this data, for reasons that may or may
+not have anything to do with real structure in the market. This is the same
+selection mechanism as data snooping, just stretched out over calendar time
+and dressed up as ordinary research prioritization.
+
+**Survivorship bias in the asset universe.** This one is distinct from idea
+survivorship: it's about which *instruments* make it into the test at all.
+Backtest a strategy on "the S&P 500" using today's constituent list applied
+to twenty years of history, and every company that was delisted, acquired
+under distress, or went bankrupt along the way is silently absent from the
+sample. A strategy that would have bought and held several companies that
+went to zero looks great in a backtest that only includes the companies
+that didn't.
+
+**Implicit knowledge of the future.** This is the hardest one to purge,
+because it doesn't require looking anything up. A researcher building a
+strategy in 2026 against data through, say, 2015, already knows — just from
+having lived through it — which regimes existed after 2015, which crises
+happened, roughly which strategy families are talked about as having worked
+over that period. That knowledge doesn't have to be used deliberately for it
+to shape "reasonable-seeming" design choices: which markets to focus on,
+which risk controls feel obviously necessary, which time periods feel like
+fair tests. A researcher with no knowledge of what came after their test
+window would make different, more naive choices — some worse, but some that
+a knowing researcher would reject as "clearly flawed" only because they
+happen to know how that flaw would have played out.
+
+## Why more refinement makes it worse
+
+This is the part that resolves the opening paradox directly. Every round of
+"fixing" a backtest in response to something you noticed in its output —
+the strategy loses money in some particular quarter, so you add a filter to
+avoid that kind of setup; the drawdown is too large, so you tighten a stop —
+is, mechanically, one more $\hat S_i$ evaluated against the same historical
+sample, with the added twist that this one was chosen *because* you already
+saw how the previous version performed. That's not a smaller version of the
+bias described above. It's the same bias, applied with more information
+about exactly where the fixed sample's noise lives.
+
+This is precisely why it feels like the opposite of what it is. Fixing a
+visible flaw feels like due diligence — like you're removing a source of
+unreliability. But the flaw you're fixing was identified by looking at
+performance on the one sample you have, and the fix is validated by
+checking whether it improves performance on that same sample. Each round
+tightens the fit to this specific slice of history a little more, which is
+indistinguishable, from the point of view of the statistics, from raising
+$N$ in the argument above. Fifty rounds of careful, well-motivated
+refinement is fifty more looks at the same data, and the expected gap
+between the reported number and the true number grows with every look, not
+shrinks.
+
+## What actually helps
+
+None of this is fixable, and it's worth being honest that there's no
+substitute that fully closes the gap. But there are things that genuinely
+reduce it, at real cost, which is why they're not universally practiced:
+
+**Out-of-sample data collected after the strategy was finalized.** Not a
+held-out historical slice — paper trading or live tracking on data that
+didn't exist yet when the strategy was designed. Held-out historical slices
+help, but they're vulnerable to the same implicit-knowledge problem: over
+enough research cycles, a researcher ends up implicitly snooping over the
+"held-out" period too, because they've seen enough related work and market
+history to have absorbed what happened in it.
+
+**Pre-registration.** Committing to the exact strategy and parameter values
+before running the test that will be used to judge it, so there's no
+opportunity to select after the fact. This is a direct import from the
+push toward pre-registration in empirical sciences facing their own
+replication crises, and it works for the same reason there: it removes the
+researcher's ability to choose, post hoc, which result counts as "the"
+result.
+
+**Being honest about $N$.** If a strategy really did emerge from trying two
+hundred variations, that number belongs in the report, and the reported
+performance should be adjusted downward to reflect it. The backtest
+overfitting literature has proposed exactly this kind of correction —
+reporting a "deflated" performance metric that discounts the raw historical
+number by an estimate of how much of it is attributable to the size of the
+search that produced it, rather than reporting the raw max as if it were a
+single unbiased trial.
+
+**Preferring an economic or structural rationale over a backtest number
+alone.** A strategy that would be expected to work for a reason independent
+of the historical fit — a real friction it exploits, a real risk it's
+compensated for bearing — starts from a different position than one whose
+entire justification is "the backtest number is high." The backtest is
+still needed to check the rationale isn't wrong, but it isn't being asked to
+do the entire job of generating the hypothesis and confirming it.
+
+**Treating the backtest as a hypothesis test, not a demonstration.** The
+right frame is: here is a specific, narrow claim about expected performance,
+fixed in advance, and here is a test of whether the data are consistent with
+it. The wrong frame, which is how backtests are normally used in practice,
+is: here is a demonstration that this approach makes money, built by
+searching until the demonstration succeeds.
+
+## Back to the paradox
+
+The refined, fifty-iterations-in version of the strategy looks more
+rigorous because more work visibly went into it, and it produces a better
+number because that's mechanically what the selection process is optimized
+to produce — those are two different kinds of "better," and only one of
+them says anything about what happens next. The naive first version, tested
+once and left alone, is not a lucky escape from careful work. It's the only
+one of the two that hasn't yet been shaped by a process that discards
+whatever the data don't like.
+
+That's the sharp version of the resolution: the growing confidence you feel
+with each round of refinement is not evidence that the strategy has gotten
+more sound. It's evidence that you've looked at the same finite sample more
+times and kept only what agreed with you. In a well-functioning research
+process, that feeling of increasing confidence is not the reassurance it
+presents itself as — it's the warning sign.

@@ -1,0 +1,215 @@
+---
+title: "Quantum mechanics from fundamentals: what the equations actually say"
+description: "The empirical puzzle that forced physics to quantize energy, the postulates of quantum mechanics stated precisely, and two real systems — the infinite square well and the harmonic oscillator — solved completely, with plotted wavefunctions."
+date: 2026-07-26
+tags: ["physics"]
+---
+
+import Chart from '../../components/Chart.astro';
+
+Shine light on a metal plate and, above some threshold frequency, electrons pop out. Below that frequency, nothing happens — no electrons at all, no matter how bright you make the light. That's the **photoelectric effect**, and it's a genuine problem for classical electromagnetism, not a minor wrinkle.
+
+Here's why. In classical physics, light is an electromagnetic wave, and a wave's energy is set by its *amplitude* — how intense it is — with frequency playing no special role in how much energy it can deliver. A dim, low-frequency wave and a dim, high-frequency wave should be able to carry the same energy if you just wait long enough or crank up the intensity; energy accumulates continuously as the wave washes over the electrons in the metal, like water slowly filling a cup. So classically, if you shine dim light of *any* frequency on the plate for long enough, or bright light of any frequency, electrons should eventually absorb enough energy to escape. Frequency should be irrelevant to whether electrons come out at all — only total energy delivered (intensity × time) should matter.
+
+That is not what happens. Below the threshold frequency $\nu_0$, cranking the intensity up as far as you like ejects exactly zero electrons — you can flood the plate with light and wait indefinitely. Above $\nu_0$, electrons come out *immediately*, even at very low intensity, and the maximum kinetic energy of the ejected electrons depends only on the frequency, not the intensity:
+
+$$
+K_{\max} = h\nu - \phi,
+$$
+
+where $\phi$ is a fixed "work function" of the metal and $h$ is a constant. Intensity only changes *how many* electrons come out per second, not their energy. This is exactly backwards from the classical picture, where intensity (energy delivered) should be what matters and frequency shouldn't.
+
+Einstein's 1905 resolution: light doesn't deliver energy continuously. It comes in discrete quanta — photons — each carrying energy $E = h\nu$, a relation Planck had introduced a few years earlier in 1900 to explain a different puzzle (blackbody radiation, where treating light as a continuous classical wave predicts infinite energy radiated at high frequencies, the "ultraviolet catastrophe," while assuming energy is emitted and absorbed only in discrete lumps $h\nu$ fixes the prediction and matches experiment). Applied to the photoelectric effect: a single electron absorbs a single photon, all at once. If that photon's energy $h\nu$ is less than the work function $\phi$ needed to escape the metal, the electron doesn't leave — and no number of *additional* sub-threshold photons helps, because they aren't absorbed together, they're absorbed one at a time, each too weak on its own. Turn up the intensity and you just get more photons per second, hence more attempted ejections, but each one still lives or dies on its own energy $h\nu$ alone. That single assumption — energy in discrete packets $E = h\nu$, not continuously — flips the prediction from "frequency shouldn't matter" to "frequency is everything," matching the data exactly. This is the first hard evidence that energy is quantized, and it's where quantum mechanics starts.
+
+## Wave-particle duality, made concrete
+
+If light — usually a wave — behaves in discrete lumps, does matter — usually particles — have a wave side too? De Broglie's hypothesis (1924) says yes, and gives the matter-wave a specific wavelength tied to momentum:
+
+$$
+\lambda = \frac{h}{p}.
+$$
+
+This isn't just a slogan; it has directly testable content, and the double-slit experiment is where that content is sharpest. Fire particles — electrons, say — one at a time at a barrier with two slits, with a detector screen behind it. Two things happen, both confirmed experimentally:
+
+1. Even sending particles through **one at a time**, so there's no possibility of particles interacting with each other in flight, the pattern that builds up on the screen after many arrivals is an interference pattern — alternating bands of high and low detection probability, exactly the pattern you'd get from two overlapping waves. Each individual particle lands as a single, localized dot (not smeared out), but the *statistics* of where dots land, accumulated over many runs, form fringes.
+2. If you add a detector that determines **which slit** each particle actually went through, the interference pattern disappears. You get two separate blobs, one behind each slit — the classical, no-interference result — even though nothing else about the setup changed.
+
+Neither a "just a classical particle" picture nor a "just a classical wave" picture survives this intact. A classical particle goes through one slit or the other and can't interfere with itself — but the un-observed case shows interference. A classical wave doesn't need which-path information to interfere, and typically both slits' waves keep interfering regardless of what else is going on around them — but here, merely knowing which slit was taken kills the interference, even without physically blocking anything. What's actually being measured is a *probability*: the interference pattern is a pattern in where particles are likely to land, built up statistically over many identical trials, not a pattern in energy or displacement the way a water wave's interference is.
+
+This motivates a specific mathematical object: a complex-valued wavefunction $\psi(x, t)$, evolving like a wave (so it can interfere with itself), whose *squared magnitude* gives a probability density for finding the particle at position $x$ — this is the **Born rule**, one of the postulates of quantum mechanics, stated precisely:
+
+$$
+P(x)\,dx = |\psi(x,t)|^2\, dx, \qquad \int_{-\infty}^{\infty} |\psi(x,t)|^2\, dx = 1.
+$$
+
+$\psi$ itself is not directly observable — it's complex, and only $|\psi|^2$ is a measurable probability density. When both slits are open and undetected, you add the *amplitudes* $\psi = \psi_1 + \psi_2$ before squaring, which is where the cross term producing interference fringes comes from: $|\psi_1 + \psi_2|^2 = |\psi_1|^2 + |\psi_2|^2 + 2\,\mathrm{Re}(\psi_1^*\psi_2)$. Detecting which slit the particle used destroys the coherent superposition, leaving you to add the *probabilities* $|\psi_1|^2 + |\psi_2|^2$ instead — no cross term, no fringes. That's the whole story of wave-particle duality once it's cashed out mathematically: interference of complex probability amplitudes, not "the particle is secretly a little wave and a little marble at once."
+
+## The Schrödinger equation
+
+Given that we need a complex wavefunction evolving in time and capable of interference, what equation governs it? This is genuinely a **postulate** of quantum mechanics — not something derivable from more basic principles, the way, say, the infinite square well's energy levels will be derivable from *this* equation later in this post. It's motivated by analogy with classical wave equations and by requiring consistency with known relations for free particles, but it is not derived from anything deeper; it is one of the axioms the whole theory is built on. Schrödinger proposed it in 1926. The time-dependent form:
+
+$$
+i\hbar\frac{\partial \psi}{\partial t} = \hat H \psi,
+$$
+
+where $\hat H$ is the Hamiltonian operator, and for a single particle of mass $m$ in a potential $V(x)$,
+
+$$
+\hat H = -\frac{\hbar^2}{2m}\frac{d^2}{dx^2} + V(x).
+$$
+
+If $V$ doesn't depend on time, you can separate variables, $\psi(x,t) = \phi(x)e^{-iEt/\hbar}$, and the spatial part satisfies the **time-independent Schrödinger equation**, an eigenvalue equation:
+
+$$
+\hat H \phi(x) = E\phi(x).
+$$
+
+This is a postulate, but it isn't an arbitrary one — it has to at least reproduce known physics for the simplest case, a free particle ($V = 0$). A free particle with definite momentum $p$ and energy $E$ should be described by a plane wave, $\psi(x,t) = e^{i(kx - \omega t)}$, with $p = \hbar k$ and $E = \hbar\omega$ (the same relations, run in reverse, that motivated de Broglie's hypothesis above). Let's actually check this satisfies the free-particle Schrödinger equation with the right energy-momentum relation, rather than just asserting it.
+
+Left side:
+
+$$
+i\hbar\frac{\partial \psi}{\partial t} = i\hbar\cdot(-i\omega)\,e^{i(kx-\omega t)} = \hbar\omega\,\psi.
+$$
+
+Right side (with $V = 0$):
+
+$$
+-\frac{\hbar^2}{2m}\frac{\partial^2 \psi}{\partial x^2} = -\frac{\hbar^2}{2m}\cdot(ik)^2 e^{i(kx-\omega t)} = -\frac{\hbar^2}{2m}(-k^2)\,\psi = \frac{\hbar^2 k^2}{2m}\,\psi.
+$$
+
+Equating the two sides requires $\hbar\omega = \dfrac{\hbar^2 k^2}{2m}$, i.e. $\omega = \dfrac{\hbar k^2}{2m}$. Substituting $E = \hbar\omega$ and $p = \hbar k$ turns this into
+
+$$
+E = \frac{p^2}{2m},
+$$
+
+exactly the classical kinetic energy relation for a free particle. So the plane wave genuinely does solve the equation, and it solves it with precisely the energy-momentum relation physics requires. That doesn't *prove* the Schrödinger equation is correct — no amount of consistency checks proves a postulate — but it's a real, non-circular check that the postulate at least reproduces the physics it has to reproduce in the simplest case, and it's the kind of check worth doing explicitly rather than taking on faith.
+
+## Fully solved: the particle in a box
+
+Now the main event — an exactly solvable system, worked completely, start to finish. Consider a particle of mass $m$ confined to $0 \le x \le L$ by walls of infinite potential: $V(x) = 0$ inside the box, $V(x) = \infty$ outside. Infinite potential means zero probability of finding the particle outside, so the boundary conditions are
+
+$$
+\psi(0) = 0, \qquad \psi(L) = 0.
+$$
+
+**Setting up the ODE.** Inside the box, $V = 0$, so the time-independent Schrödinger equation is
+
+$$
+-\frac{\hbar^2}{2m}\frac{d^2\psi}{dx^2} = E\psi \quad\Longrightarrow\quad \frac{d^2\psi}{dx^2} = -\frac{2mE}{\hbar^2}\psi.
+$$
+
+This is the simple harmonic-oscillator ODE in disguise. Writing $k^2 \equiv 2mE/\hbar^2$ (with $k$ real, since we're looking for bound states with $E > 0$), the general solution is
+
+$$
+\psi(x) = A\sin(kx) + B\cos(kx).
+$$
+
+**Applying the boundary conditions.** At $x = 0$: $\psi(0) = A\sin 0 + B\cos 0 = B = 0$. So $B = 0$ and $\psi(x) = A\sin(kx)$.
+
+At $x = L$: $\psi(L) = A\sin(kL) = 0$. We can't take $A = 0$ (that's the trivial, everywhere-zero, unnormalizable non-solution), so we need $\sin(kL) = 0$, which forces
+
+$$
+kL = n\pi, \qquad n = 1, 2, 3, \dots
+$$
+
+($n = 0$ gives $\psi \equiv 0$ everywhere, not a physical state, so it's excluded; negative $n$ just flips the overall sign of $\psi$, which is the same physical state, so it adds nothing new.) So $k$ — and hence the energy — is quantized: only discrete values are allowed. This quantization isn't an extra assumption bolted on; it falls straight out of requiring the wavefunction to vanish at both walls.
+
+**Energy levels.** From $k^2 = 2mE/\hbar^2$ and $k = n\pi/L$:
+
+$$
+E_n = \frac{\hbar^2 k^2}{2m} = \frac{n^2\pi^2\hbar^2}{2mL^2}, \qquad n = 1, 2, 3, \dots
+$$
+
+**Normalization.** We have $\psi_n(x) = A\sin(n\pi x/L)$ so far, with $A$ undetermined. The Born rule requires $\int_0^L |\psi_n(x)|^2\,dx = 1$:
+
+$$
+\int_0^L A^2 \sin^2\!\left(\frac{n\pi x}{L}\right) dx = 1.
+$$
+
+Use $\sin^2\theta = \tfrac12(1 - \cos 2\theta)$:
+
+$$
+\int_0^L A^2\cdot\frac12\left(1 - \cos\frac{2n\pi x}{L}\right) dx = \frac{A^2}{2}\left[x - \frac{L}{2n\pi}\sin\frac{2n\pi x}{L}\right]_0^L.
+$$
+
+At $x = L$, the sine term is $\sin(2n\pi) = 0$; at $x = 0$ everything vanishes. So the bracket evaluates to just $L$, giving
+
+$$
+\frac{A^2}{2}\cdot L = 1 \quad\Longrightarrow\quad A = \sqrt{\frac{2}{L}}.
+$$
+
+**Result — the normalized stationary states:**
+
+$$
+\psi_n(x) = \sqrt{\frac{2}{L}}\sin\!\left(\frac{n\pi x}{L}\right), \qquad E_n = \frac{n^2\pi^2\hbar^2}{2mL^2}, \qquad n = 1, 2, 3, \dots
+$$
+
+Every step used only the Schrödinger equation and the two boundary conditions — nothing else went in, and quantized energy levels came out. This is the cleanest fully rigorous demonstration available that confinement forces discreteness.
+
+Setting $L = 1$ for the plot (so $x$ runs over the box in dimensionless units), here's $|\psi_n(x)|^2 = \tfrac{2}{L}\sin^2(n\pi x/L)$ for the ground state and first excited state:
+
+<Chart fn="2 * Math.pow(Math.sin(1 * Math.PI * x), 2)" domain={[0, 1]} xLabel="x / L" yLabel="|ψ₁(x)|²" />
+
+<Chart fn="2 * Math.pow(Math.sin(2 * Math.PI * x), 2)" domain={[0, 1]} xLabel="x / L" yLabel="|ψ₂(x)|²" />
+
+Note the $n = 2$ state has a **node** — a point inside the box where the particle has exactly zero probability of being found — at $x = L/2$, despite the potential being completely flat there. That's a genuinely non-classical feature: nothing about the potential singles out the midpoint, but the wave nature of $\psi$ forces a zero-crossing there for this energy level.
+
+## A second example: the quantum harmonic oscillator
+
+Take $V(x) = \tfrac12 m\omega^2 x^2$, the potential for a mass on a spring (or, more usefully in physics, the potential you get from Taylor-expanding almost *any* smooth potential near a minimum — which is why this system shows up everywhere, from molecular vibrations to quantum field theory). The time-independent Schrödinger equation,
+
+$$
+-\frac{\hbar^2}{2m}\frac{d^2\psi}{dx^2} + \frac12 m\omega^2 x^2\psi = E\psi,
+$$
+
+can be solved directly as a differential equation (it leads to Hermite polynomials times a Gaussian), but I'll be honest that I'm not redoing that derivation from scratch here — it's a longer calculation than fits cleanly in this post. There's also a genuinely elegant alternative: rewrite $\hat H$ in terms of "ladder operators" $\hat a$, $\hat a^\dagger$ built from $x$ and $p$, which turn the problem into pure algebra — $\hat a^\dagger$ and $\hat a$ raise and lower the energy by one quantum at a time, and requiring the ladder to terminate (no states of negative energy) pins down the spectrum without ever solving the ODE directly. That method is worth knowing exists, but I'm stating its flavor rather than carrying out the algebra here.
+
+Either method gives the same energy levels:
+
+$$
+E_n = \hbar\omega\left(n + \frac12\right), \qquad n = 0, 1, 2, \dots
+$$
+
+evenly spaced by $\hbar\omega$, unlike the square well's $n^2$ spacing. The physically striking part is $n = 0$: the ground state energy is
+
+$$
+E_0 = \frac12\hbar\omega \neq 0.
+$$
+
+Classically, a mass sitting at rest at the bottom of the potential well ($x = 0$, $p = 0$) has exactly zero energy — that's the classical ground state, and there's nothing wrong with it. Quantum mechanically, that state is *forbidden*. Here's why, precisely: if the particle had both $x = 0$ and $p = 0$ exactly, both uncertainties would be zero, so $\Delta x\,\Delta p = 0$ — but the uncertainty principle (below) requires $\Delta x\,\Delta p \ge \hbar/2$ for *any* state. A quantum particle simply cannot be perfectly localized at rest; it's forced to have some irreducible residual energy, called **zero-point energy**, and $E_0 = \tfrac12\hbar\omega$ is exactly that minimum forced by the uncertainty principle for this potential. This is a real, measurable effect (it shows up, for instance, in why helium doesn't solidify at ordinary pressure even at absolute zero — its zero-point motion is large enough to resist crystallizing) and has no classical counterpart at all.
+
+The ground-state wavefunction itself is a Gaussian,
+
+$$
+\psi_0(x) = \left(\frac{m\omega}{\pi\hbar}\right)^{1/4} e^{-m\omega x^2/2\hbar}.
+$$
+
+Working in dimensionless units where $m\omega/\hbar = 1$, this is $\psi_0(x) = \pi^{-1/4}e^{-x^2/2}$, so $|\psi_0(x)|^2 = \pi^{-1/2}e^{-x^2}$ — a normalized Gaussian centered on the classical equilibrium point, with the particle most likely to be found at $x = 0$ but with genuinely nonzero probability of being found away from it, unlike the classical particle sitting still exactly at $x=0$:
+
+<Chart fn="(1 / Math.sqrt(Math.PI)) * Math.exp(-x * x)" domain={[-4, 4]} xLabel="x" yLabel="|ψ₀(x)|²" />
+
+## The uncertainty principle, stated correctly
+
+Heisenberg's uncertainty principle (1927) is usually written
+
+$$
+\Delta x\,\Delta p \ge \frac{\hbar}{2},
+$$
+
+where $\Delta x$ and $\Delta p$ are the standard deviations of position and momentum in a given quantum state. The popular explanation — "measuring position disturbs momentum, that's why you can't know both" — is a genuine oversimplification, and worth correcting explicitly since it's the version almost everyone hears first. The real content is mathematical, not about clumsy measurement apparatus: position-space and momentum-space wavefunctions are **Fourier transforms** of each other, and it's a general fact about Fourier transforms — true for sound waves, radio signals, anything — that a function sharply localized in one domain is necessarily spread out in the conjugate domain. A single sharp spike in position space Fourier-transforms into a wide spread of momentum components; a wavefunction built from a single, definite momentum (a plane wave) is spread uniformly over all space. You cannot construct a wavefunction that is narrow in *both* representations simultaneously, for the same reason you can't make a radio pulse that is both a single pure frequency and instantaneous in time. The uncertainty principle is a statement about what wavefunctions can look like, not a statement about the limits of measurement technology.
+
+## Measurement: the postulate, and what's genuinely unresolved
+
+The rest of the standard postulates, stated plainly:
+
+- Every measurable physical quantity (an **observable** — position, momentum, energy) corresponds to a Hermitian operator $\hat A$ acting on the wavefunction.
+- The only possible outcomes of measuring $\hat A$ are its eigenvalues: $\hat A\phi_a = a\phi_a$.
+- If the system is in state $\psi = \sum_a c_a \phi_a$ (expanded in $\hat A$'s eigenstates), measuring $\hat A$ yields outcome $a$ with probability $|c_a|^2$ (the Born rule again, in general form), and immediately after the measurement the state **collapses** to $\phi_a$ — a subsequent measurement of the same observable is guaranteed to return $a$ again.
+
+That's the postulate, and it's what every experimental prediction of quantum mechanics is built on — it works, to extraordinary precision, in every test performed so far. What it does *not* settle is what "collapse" physically *is*. Does the wavefunction really, physically snap to an eigenstate the instant a measurement happens (Copenhagen-style views)? Does nothing collapse at all, and instead every outcome occurs in some sense, with the appearance of collapse just being what a single branch of a universal wavefunction looks like from the inside (many-worlds)? Are there additional hidden variables, or an objective physical process that triggers collapse (objective-collapse theories)? This is a genuinely open foundational question — physicists actively disagree about it — and the mathematics of quantum mechanics, remarkably, doesn't settle it: every leading interpretation reproduces the same measurable predictions, which is precisely why it's been possible to build and use the theory for a century without agreement on this point. I'm not picking a side here; it would be dishonest to present one as the resolved answer.
+
+## Scope
+
+This covered a single, non-relativistic particle moving in one dimension — deliberately the simplest setting where the postulates and the exact-solution machinery are fully visible. Left out entirely: spin, multi-particle systems and the entanglement that comes with them, angular momentum and the hydrogen atom, perturbation theory for systems that *can't* be solved exactly (most of them), and the relativistic extension into quantum field theory, which is its own large subject built on genuinely different foundations. What's here — the postulates, the Schrödinger equation checked against a known limit, and two systems solved (one completely, one partially) — is the load-bearing foundation the rest is built on top of.

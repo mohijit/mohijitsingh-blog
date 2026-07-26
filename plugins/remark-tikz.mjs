@@ -14,6 +14,7 @@ const TECTONIC = process.env.TECTONIC_BIN || 'tectonic';
 const PDFTOCAIRO = process.env.PDFTOCAIRO_BIN || 'pdftocairo';
 
 const PREAMBLE = String.raw`\documentclass[tikz,border=2pt]{standalone}
+\usepackage{amssymb}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{arrows.meta,positioning,calc,shapes,decorations.pathreplacing}

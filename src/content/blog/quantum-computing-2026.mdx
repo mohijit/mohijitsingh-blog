@@ -1,0 +1,176 @@
+---
+title: "Quantum computing: interference, not parallelism"
+description: "What a qubit actually is, why superposition alone buys you nothing, and why interference is the real computational resource — with the linear algebra, Grover and Shor, and an honest look at where the hardware stands in mid-2026."
+date: 2026-07-25
+tags: ["physics", "cs"]
+---
+
+import Chart from '../../components/Chart.astro';
+
+Here is a claim you'll see in almost every popular article about quantum computers: "a qubit can be 0 and 1 at the same time, so a quantum computer tries every answer at once." It sounds compelling, and it's wrong in a way that matters. If it were true, an $n$-qubit computer would let you evaluate a function at all $2^n$ inputs and just *read off* every result — which would mean a few hundred qubits could store and report more information than there are atoms in the observable universe. That can't be right, and it isn't: a single qubit, measured, gives you exactly one classical bit back, same as flipping a coin. So whatever quantum computers are actually good for, it is not "free parallelism." The real resource is more subtle, and to see it we need the actual mathematics.
+
+## A qubit is a vector, not a fuzzy bit
+
+A classical bit is an element of $\{0, 1\}$. At every instant it is one or the other, full stop; there is no third option and no math beyond that.
+
+A qubit is a unit vector in $\mathbb{C}^2$:
+
+$$
+|\psi\rangle = \alpha|0\rangle + \beta|1\rangle, \qquad |\alpha|^2 + |\beta|^2 = 1,
+$$
+
+where $\alpha, \beta \in \mathbb{C}$ and $|0\rangle = \binom{1}{0}$, $|1\rangle = \binom{0}{1}$ are the two basis states corresponding to the classical values. So far this is just "a bit, generalized to allow complex coefficients on a two-dimensional axis instead of a single binary choice."
+
+The part that actually differs from a classical probabilistic bit is what happens when you look. Measuring $|\psi\rangle$ in the $\{|0\rangle, |1\rangle\}$ basis doesn't reveal $\alpha$ and $\beta$. It obeys the **Born rule**: you get outcome $0$ with probability $|\alpha|^2$, outcome $1$ with probability $|\beta|^2$, and the state *collapses* — every trace of the other amplitude is gone. If $\alpha = \beta = 1/\sqrt2$, measurement gives you a single fair coin flip, nothing more. You cannot ask the qubit for both answers; you get one, chosen randomly, and the superposition is destroyed in the act of asking.
+
+This is precisely why "tries every answer at once and reads them all out" is false. It's also why the qubit's extra information — the actual complex values of $\alpha$ and $\beta$, and the relative phase between them — is real but *inaccessible* by direct readout (this is essentially Holevo's bound: one qubit yields at most one classical bit of information under measurement, no matter how much analog information is encoded in its amplitudes).
+
+So what does an $n$-qubit register actually buy you? It's true that a unitary gate applied to a superposition acts on all $2^n$ amplitudes simultaneously — if you build a circuit computing $x \mapsto f(x)$ and feed it an equal superposition over all $x$, you genuinely get a superposition encoding $f(x)$ for every $x$ *in one pass*. That much is real quantum parallelism. But it is trapped behind the same measurement problem: read the register now and you get one random $x$ and its $f(x)$, no better than picking $x$ classically and computing $f(x)$ directly.
+
+The actual engineering trick — the thing that makes Grover's and Shor's algorithms work at all — is **interference**. Amplitudes are complex numbers, and complex numbers can cancel. A quantum algorithm is a sequence of unitary gates deliberately chosen so that, by the time you measure, the amplitudes leading to *wrong* answers have destructively interfered down toward zero, while the amplitude on the *right* answer has constructively reinforced up toward one. Superposition is the raw material; interference across the joint state of many qubits is the mechanism that turns it into a computational advantage. Everything below is really about how that cancellation is engineered.
+
+Here's the geometric picture for a single qubit, which will matter again when we get to Grover's algorithm — think of $|\psi\rangle$ as an arrow on the surface of a sphere (the Bloch sphere), with $|0\rangle$ at the north pole and $|1\rangle$ at the south pole:
+
+```tikz
+\draw[thick] (0,0) circle (2);
+\draw[thick,dashed] (-2,0) arc (180:360:2 and 0.5);
+\draw[thick] (-2,0) arc (180:0:2 and 0.5);
+\draw[thick,->] (0,-2.5) -- (0,2.5);
+\node at (0,2.8) {$|0\rangle$};
+\node at (0,-2.8) {$|1\rangle$};
+\draw[thick,->,blue] (0,0) -- (1.3,1.5);
+\node[blue] at (1.8,1.7) {$|\psi\rangle$};
+\draw (0.5,0) arc (0:49:0.5);
+\node at (0.85,0.35) {$\theta$};
+```
+
+Gates rotate this arrow; measurement projects it onto the poles with probability given by how close the arrow is to each one.
+
+## Two qubits, tensor products, and entanglement
+
+To combine qubits, the joint state space is a tensor product. Two qubits live in $\mathbb{C}^2 \otimes \mathbb{C}^2 \cong \mathbb{C}^4$, spanned by $|00\rangle, |01\rangle, |10\rangle, |11\rangle$. A general two-qubit state is
+
+$$
+|\psi\rangle = c_{00}|00\rangle + c_{01}|01\rangle + c_{10}|10\rangle + c_{11}|11\rangle, \qquad \sum_{ij}|c_{ij}|^2 = 1.
+$$
+
+If this state simply describes "qubit A is in state $a_0|0\rangle + a_1|1\rangle$ and, independently, qubit B is in state $b_0|0\rangle + b_1|1\rangle$," then it must factor as a product:
+
+$$
+(a_0|0\rangle + a_1|1\rangle) \otimes (b_0|0\rangle + b_1|1\rangle) = a_0b_0|00\rangle + a_0b_1|01\rangle + a_1b_0|10\rangle + a_1b_1|11\rangle.
+$$
+
+Matching coefficients, a product state always satisfies $c_{00}c_{11} = a_0b_0 \cdot a_1b_1 = a_0b_1 \cdot a_1b_0 = c_{01}c_{10}$. That's a real, checkable algebraic constraint — not every vector in $\mathbb{C}^4$ satisfies it.
+
+Now take the Bell state:
+
+$$
+|\Phi^+\rangle = \frac{1}{\sqrt2}\big(|00\rangle + |11\rangle\big), \qquad c_{00} = c_{11} = \tfrac{1}{\sqrt2}, \quad c_{01} = c_{10} = 0.
+$$
+
+Check the constraint: $c_{00}c_{11} = \tfrac12$, but $c_{01}c_{10} = 0$. Since $\tfrac12 \ne 0$, there is *no* choice of $a_0, a_1, b_0, b_1$ that reproduces this state as a product — it is provably not describable as "qubit A's state" and "qubit B's state" separately. That is what entanglement means, precisely, not mystically: the joint state carries information that cannot be decomposed into independent per-qubit states.
+
+The physical consequence: measure qubit A of $|\Phi^+\rangle$ and you get $0$ or $1$ with 50/50 probability — by itself, indistinguishable from a fair coin. But the instant you know that outcome, qubit B's outcome is now fixed with certainty to match it, even though nothing was ever "sent" from A to B and the two qubits could be light-years apart. Two qubits that are each individually maximally random can be perfectly correlated jointly — a correlation pattern classical probability cannot reproduce (this is the content of the Bell inequality, which real experiments confirm quantum mechanics violates; a full treatment is its own post).
+
+## Gates are unitary matrices
+
+Quantum gates are just matrices — specifically unitary matrices ($U^\dagger U = I$, which is exactly the condition that guarantees probabilities keep summing to 1) acting on the state vector.
+
+The **Pauli-X** gate is the quantum NOT:
+
+$$
+X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix}, \qquad X|0\rangle = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix}\begin{pmatrix} 1 \\ 0 \end{pmatrix} = \begin{pmatrix} 0 \\ 1 \end{pmatrix} = |1\rangle.
+$$
+
+The **Hadamard** gate is the one that actually creates superposition:
+
+$$
+H = \frac{1}{\sqrt2}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}.
+$$
+
+Applying it to $|0\rangle$ directly, by matrix multiplication:
+
+$$
+H|0\rangle = \frac{1}{\sqrt2}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}\begin{pmatrix} 1 \\ 0 \end{pmatrix} = \frac{1}{\sqrt2}\begin{pmatrix} 1 \\ 1 \end{pmatrix} = \frac{1}{\sqrt2}\big(|0\rangle + |1\rangle\big).
+$$
+
+The two-qubit **CNOT** gate flips a target qubit if and only if the control qubit is $|1\rangle$. In the ordered basis $|00\rangle, |01\rangle, |10\rangle, |11\rangle$ (control first):
+
+$$
+\text{CNOT} = \begin{pmatrix} 1&0&0&0 \\ 0&1&0&0 \\ 0&0&0&1 \\ 0&0&1&0 \end{pmatrix}.
+$$
+
+Now build the standard circuit that generates the Bell state: Hadamard on the first (control) qubit, then CNOT.
+
+```tikz
+\draw[thick] (0,2) -- (6.5,2);
+\draw[thick] (0,0) -- (6.5,0);
+\node at (-0.6,2) {$|0\rangle$};
+\node at (-0.6,0) {$|0\rangle$};
+\draw[thick,fill=white] (1.2,1.6) rectangle (2.2,2.4);
+\node at (1.7,2) {$H$};
+\draw[thick] (4,2) -- (4,0);
+\filldraw (4,2) circle (0.09);
+\draw[thick] (4,0) circle (0.3);
+\draw[thick] (4,-0.3) -- (4,0.3);
+\draw[thick] (3.7,0) -- (4.3,0);
+\node at (7,1) {$\frac{1}{\sqrt2}(|00\rangle+|11\rangle)$};
+```
+
+Starting from $|00\rangle$, the Hadamard on qubit 1 gives
+
+$$
+\Big(\tfrac{1}{\sqrt2}(|0\rangle+|1\rangle)\Big)\otimes|0\rangle = \tfrac{1}{\sqrt2}\big(|00\rangle + |10\rangle\big),
+$$
+
+which as a coefficient vector (in the $|00\rangle,|01\rangle,|10\rangle,|11\rangle$ ordering) is $\big(\tfrac{1}{\sqrt2}, 0, \tfrac{1}{\sqrt2}, 0\big)^T$. Applying CNOT:
+
+$$
+\begin{pmatrix} 1&0&0&0 \\ 0&1&0&0 \\ 0&0&0&1 \\ 0&0&1&0 \end{pmatrix}\begin{pmatrix} 1/\sqrt2 \\ 0 \\ 1/\sqrt2 \\ 0 \end{pmatrix} = \begin{pmatrix} 1/\sqrt2 \\ 0 \\ 0 \\ 1/\sqrt2 \end{pmatrix} = \tfrac{1}{\sqrt2}\big(|00\rangle + |11\rangle\big),
+$$
+
+exactly $|\Phi^+\rangle$, and exactly the entangled state we proved above can't be written as a product of two qubits. Two gates, applied to an unentangled pair, produced genuine entanglement — this is the basic building block underneath essentially every quantum algorithm and every quantum error-correcting code.
+
+Measuring this state gives $00$ or $11$ each with probability $\tfrac12$:
+
+<Chart
+  data={[
+    { outcome: "00", probability: 0.5 },
+    { outcome: "01", probability: 0 },
+    { outcome: "10", probability: 0 },
+    { outcome: "11", probability: 0.5 }
+  ]}
+  marks={[{ type: "barY", x: "outcome", y: "probability" }]}
+  xLabel="Measurement outcome"
+  yLabel="Probability"
+/>
+
+## Where the speedups actually come from
+
+**Grover's algorithm** searches an unsorted list of $N$ items for one marked entry. Classically this needs $\Theta(N)$ queries in the worst case — there's no shortcut, you have to check items one by one. Grover's algorithm does it in $O(\sqrt N)$ queries, and this is provably optimal (no quantum algorithm can do better).
+
+The mechanism is a geometric rotation, which is why the Bloch-sphere picture above generalizes usefully. Prepare an equal superposition over all $N$ basis states (amplitude $1/\sqrt N$ on each). Think of the state vector as living in a 2-dimensional plane spanned by "the marked state" and "the uniform superposition over everything else." One Grover iteration applies two reflections in sequence — reflect about the unmarked subspace (the oracle marking the answer by flipping its sign), then reflect about the initial uniform state (the "diffusion" step) — and the composition of two reflections is a rotation, by a fixed angle $\theta \approx 2/\sqrt N$, that rotates the state vector *toward* the marked state. Repeat this rotation about $\tfrac{\pi}{4}\sqrt N$ times and the vector lands almost exactly on the marked state, so measuring now returns the right answer with near-certainty. The wrong answers' amplitudes haven't been "searched faster" — they've been rotated *away from*, i.e. destructively interfered against, while the marked answer's amplitude is constructively built up. That's the quadratic speedup, and it's a real, provable one — just not exponential, and not "instant."
+
+**Shor's algorithm** factors large integers exponentially faster than any known classical method, which is the reason it worries cryptographers (RSA's security rests on factoring being hard). Its structure: factoring $N$ is reduced, via ordinary number theory, to *period-finding* — finding the period $r$ of the function $f(x) = a^x \bmod N$ for a randomly chosen $a$. Once you have $r$, a couple of gcd computations usually hand you a nontrivial factor of $N$. The quantum part is entirely about period-finding: prepare a superposition over $x$, compute $f(x)$ into an entangled second register, and apply the **quantum Fourier transform** to the first register. The QFT is built specifically so that amplitudes constructively interfere at frequencies related to $1/r$ and destructively cancel everywhere else — measuring then yields, with decent probability, a value from which $r$ can be recovered via continued fractions. The full algebra of why the QFT concentrates amplitude this way is a derivation in its own right and doesn't fit cleanly here, but the shape of the result is the same theme as Grover's: interference engineered so that the periodicity you want survives measurement and everything else cancels.
+
+## Where the hardware actually stands (mid-2026)
+
+Everything above describes the mathematics of ideal, noiseless qubits. Real hardware is not that, and it's worth being direct about the gap.
+
+We are still in what the field calls the **NISQ era** — noisy, intermediate-scale quantum — a term coined by John Preskill back in 2018 that remains accurate today. Qubits decohere (lose their quantum state to the environment) on time scales of microseconds to low milliseconds depending on the hardware; every gate has some error probability; and errors compound as circuits get deeper. This, not qubit *count*, is the central engineering obstacle.
+
+The headline result the field has been chasing for two decades is **quantum error correction operating "below threshold"** — encoding one noisy logical qubit across many physical qubits such that *scaling up the code makes the logical error rate go down*, exponentially, rather than errors simply piling up faster than you can correct them. Google's Willow chip (105 superconducting qubits) demonstrated exactly this in a paper published in *Nature* in December 2024: running the surface code at increasing distance (3×3, then 5×5, then 7×7 physical qubit arrays), each step reduced the logical error rate by a factor of roughly 2.14. That's a genuine milestone. It's also, honestly, a demonstration of error suppression in a static quantum *memory*, not yet of running deep, useful logical *circuits* — and the logical error rates achieved are still orders of magnitude above what large algorithms would need.
+
+IBM's public roadmap is explicit that full fault tolerance is a multi-year build, not something available now: intermediate chips named Loon (2025) and Kookaburra (2026, meant to combine logical memory and logic in a single fault-tolerant module) are stepping stones toward a system called Starling, which IBM targets for 2028–2029 to run on the order of 100 million quantum gates across 200 logical qubits. Notably, IBM is moving away from the surface code toward quantum LDPC codes, which allow non-local qubit connections and which IBM claims can cut the physical-qubit overhead per logical qubit by up to 90% compared to surface codes — overhead matters enormously here, since standard surface-code estimates put the cost at roughly a thousand or more physical qubits per usable logical qubit at realistic (~0.1%) physical error rates. A well-known 2021 estimate (Gidney & Ekerå) put the resources needed to factor a 2048-bit RSA key in about 8 hours at roughly 20 million physical qubits under surface-code assumptions — architectural improvements since then have been chipping away at that number, but even optimistic recent proposals are talking about, at best, tens of thousands to low hundreds of thousands of high-quality physical qubits, which is still far beyond anything that exists.
+
+On raw hardware scale: IBM's superconducting chips went from 127 qubits (Eagle) to 433 (Osprey) to 1,121 (Condor) over 2021–2023, and other approaches — trapped-ion systems from IonQ and Quantinuum, neutral-atom systems from Atom Computing and QuEra — report qubit counts that aren't directly comparable, since different vendors count differently (raw physical qubits versus vendor-specific metrics like IonQ's "algorithmic qubits") and different modalities trade qubit count against connectivity and two-qubit gate fidelity in different ways. These numbers move every few months and I'd treat any specific figure, including the ones above, as likely dated within a year.
+
+Put plainly: **no large-scale, fault-tolerant quantum computer capable of breaking RSA-scale cryptography exists today.** What exists is noisy hardware in the hundreds-to-low-thousands of physical qubits, and a first, real, but narrow demonstration that error correction can win against noise as you scale up — which is necessary but very far from sufficient.
+
+## What's actually realistic
+
+Given that gap, where does the field currently expect near-term value? The recurring theme in current industry and research discussion is that **simulating quantum systems themselves — molecules, materials, catalysts — is considered a more plausible near-term payoff than breaking cryptography at scale.** This isn't a new idea; it's essentially Feynman's original 1982 motivation for quantum computing (nature is quantum-mechanical, and classical computers scale exponentially badly at simulating it, so a machine that's natively quantum might not). The reason cryptographic risk is being addressed today primarily through post-quantum cryptography migration, rather than as an imminent quantum-computing use case, is exactly this timeline mismatch: a cryptographically relevant machine is a fault-tolerance-era result that credible roadmaps still place years out, while quantum chemistry and materials simulations are a more natural fit for near-to-medium-term, still-noisy hardware.
+
+None of this requires hype in either direction. The linear algebra above — unitary gates, interference, entanglement that provably can't be decomposed into independent parts — is real and not going to change. What's genuinely uncertain, and worth watching rather than assuming, is how fast the engineering closes the gap between "one suppressed logical qubit in a lab demo" and "enough clean logical qubits, wired together, to run something nobody could simulate classically."
+
+Sources for the current-state claims above: Google's Willow below-threshold result ([Google Quantum AI blog](https://blog.google/innovation-and-ai/technology/research/google-willow-quantum-chip/), [Nature](https://www.nature.com/articles/s41586-024-08449-y)); IBM's fault-tolerance roadmap and qLDPC overhead claims ([IBM Quantum blog via The Quantum Insider](https://thequantuminsider.com/2025/06/12/engineering-fault-tolerance-ibms-modular-scalable-full-stack-quantum-roadmap/)); the Gidney–Ekerå RSA-2048 resource estimate ([Quantum journal, 2021](https://quantum-journal.org/papers/q-2021-04-15-433/)).

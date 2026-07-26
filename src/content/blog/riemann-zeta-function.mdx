@@ -1,0 +1,183 @@
+---
+title: "The Riemann zeta function: from primes to the critical line"
+description: "Where ζ(s) comes from, why it extends past Re(s) > 1, what ζ(-1) = -1/12 actually means (and doesn't), and why its zeros control the primes."
+date: 2026-07-22
+tags: ["math", "number-theory"]
+---
+
+import Chart from '../../components/Chart.astro';
+
+Add up the reciprocals of the squares: $1 + \frac{1}{4} + \frac{1}{9} + \frac{1}{16} + \cdots$. Euler found that this converges to $\pi^2/6$ — a strange place for $\pi$ to show up, in a sum that has nothing visibly to do with circles. Do the same thing with cubes, or fourth powers, or in general with $n^{-s}$ for any real $s > 1$, and you get a well-defined number. Push $s$ down to $1$ and the sum becomes the harmonic series, which diverges. That single boundary case — the harmonic series' divergence — is also, via a completely different route, Euclid's-proof-in-disguise that there are infinitely many primes. The two facts are not a coincidence, and untangling exactly how they're connected is what pulls you into the Riemann zeta function.
+
+## From a curious sum to the primes
+
+For a complex number $s$ with $\operatorname{Re}(s) > 1$, define
+
+$$
+\zeta(s) = \sum_{n=1}^{\infty} \frac{1}{n^s}.
+$$
+
+Convergence here is easy to pin down. Write $s = \sigma + it$ with $\sigma = \operatorname{Re}(s)$. Then $|n^{-s}| = |e^{-s \log n}| = n^{-\sigma}$, so the series converges absolutely exactly when $\sum n^{-\sigma}$ does — which, by the integral test against $\int_1^\infty x^{-\sigma}\,dx$, happens precisely for $\sigma > 1$. So $\zeta$ is a well-defined, holomorphic function on the right half-plane $\operatorname{Re}(s) > 1$. Nothing exotic yet.
+
+The reason to care about primes at all comes from a factorization identity Euler wrote down: the **Euler product**,
+
+$$
+\zeta(s) = \prod_{p \text{ prime}} \frac{1}{1 - p^{-s}}, \qquad \operatorname{Re}(s) > 1.
+$$
+
+This is worth deriving in full, because the derivation is genuinely elegant and it's the entire reason $\zeta$ is a number-theoretic object rather than just a curiosity in analysis. Fix a prime $p$. Since $|p^{-s}| < 1$ for $\operatorname{Re}(s) > 1$, the geometric series
+
+$$
+\frac{1}{1 - p^{-s}} = 1 + p^{-s} + p^{-2s} + p^{-3s} + \cdots
+$$
+
+converges absolutely. Now take the finite product over all primes $p \le X$ for some cutoff $X$, and multiply these geometric series together:
+
+$$
+\prod_{p \le X} \frac{1}{1-p^{-s}} = \prod_{p \le X}\left(\sum_{k=0}^{\infty} p^{-ks}\right).
+$$
+
+Expanding this product of sums (legitimate term-by-term because every series involved converges absolutely) produces one term for every way of choosing an exponent $k_p \ge 0$ for each prime $p \le X$, almost all zero. Each such choice corresponds to the integer $n = \prod_{p \le X} p^{k_p}$, and by the fundamental theorem of arithmetic that correspondence is a bijection: every positive integer whose prime factors are all $\le X$ arises from **exactly one** choice of exponents. So the expanded product is exactly
+
+$$
+\prod_{p \le X} \frac{1}{1-p^{-s}} = \sum_{\substack{n \ge 1 \\ p \mid n \Rightarrow p \le X}} \frac{1}{n^s}.
+$$
+
+As $X \to \infty$, the right-hand side includes more and more integers, and its difference from the full sum $\sum_{n\ge 1} n^{-s}$ is bounded by $\sum_{n > X} n^{-\sigma} \to 0$ (again using absolute convergence for $\sigma>1$). Taking the limit gives the Euler product exactly as stated.
+
+Why does this matter? Unique factorization is doing all the work — the identity is a generating-function encoding of "every integer factors into primes in exactly one way." Take logarithms and expand each $\log(1-p^{-s})^{-1}$ as a power series in $p^{-s}$:
+
+$$
+\log \zeta(s) = \sum_p \sum_{k=1}^{\infty} \frac{p^{-ks}}{k} = \sum_p p^{-s} + O(1)\quad\text{(the } k\ge2 \text{ terms converge for } \operatorname{Re}(s) > \tfrac12\text{)}.
+$$
+
+So the growth of $\zeta(s)$ as $s \to 1^+$ is governed, to leading order, by $\sum_p p^{-s}$ — a sum running only over primes. Since $\zeta(s) \to \infty$ as $s \to 1^+$ (it has a pole there — the harmonic series diverging), this forces $\sum_p p^{-s} \to \infty$ too, which recovers Euler's classical proof that $\sum_p 1/p$ diverges, i.e. that there are infinitely many primes, via completely elementary complex-free reasoning about a sum over primes. That's the shallow end of the pool. The deep end — where the *zeros* of $\zeta$ pin down the fine-grained error term in how primes are distributed — is where the rest of this post is headed.
+
+## Why extend past $\operatorname{Re}(s) > 1$?
+
+Two things push you to ask what $\zeta$ "should" mean outside its natural domain. First, curiosity about divergent-looking sums like $1+2+3+\cdots$, which formally is $\zeta(-1)$ if you plug $s=-1$ into the defining series — except that series diverges, so the defining formula is simply not valid there and gives no answer on its own. Second, and far more importantly for the theory: it turns out the *deep* arithmetic information about primes — the size of the error term in the prime counting function, not just the crude fact that there are infinitely many — lives in the location of the zeros of $\zeta$, and those zeros mostly aren't in the region $\operatorname{Re}(s) > 1$ at all (the Euler product shows $\zeta(s) \ne 0$ there, since an infinite product of nonzero factors that converges to a nonzero value can't vanish). To find the zeros that matter, you need $\zeta$ defined on a much larger region of the complex plane.
+
+This is where **analytic continuation** comes in. The idea is: find a function $\hat\zeta(s)$ that is holomorphic on a larger domain and agrees with $\zeta(s)$ wherever the original series converges ($\operatorname{Re}(s) > 1$). A basic fact of complex analysis — the identity theorem — says that if such an extension exists on a connected domain, it is *unique*: two holomorphic functions that agree on a set with a limit point (in particular, on an open set) must agree everywhere they're both defined. So the question is purely existence, and "the Riemann zeta function" for $s$ outside $\operatorname{Re}(s)>1$ means, unambiguously, this unique continuation — not the original series, which simply diverges out there and is not being "resummed" to anything.
+
+## Continuing $\zeta$: the idea, sketched honestly
+
+Deriving the continuation properly uses machinery — the Jacobi theta function and Poisson summation — that's genuinely beyond what a single post can derive from scratch. What follows is a sketch of the *shape* of the argument, not a full derivation.
+
+Start from Euler's integral for the Gamma function, $\Gamma(z) = \int_0^\infty e^{-u} u^{z-1}\,du$. Substituting $u = \pi n^2 x$ and rearranging turns this into a statement about a single term $n^{-s}$:
+
+$$
+\pi^{-s/2}\,\Gamma(s/2)\, n^{-s} = \int_0^\infty e^{-\pi n^2 x}\, x^{s/2 - 1}\, dx.
+$$
+
+Summing over $n \ge 1$ and swapping sum and integral (valid for $\operatorname{Re}(s) > 1$) turns the left side into $\pi^{-s/2}\Gamma(s/2)\zeta(s)$, and the right side into an integral of $\omega(x) := \sum_{n\ge1} e^{-\pi n^2 x}$ — half of the Jacobi theta function $\theta(x) = \sum_{n\in\mathbb{Z}} e^{-\pi n^2 x} = 1 + 2\omega(x)$.
+
+This is the key move: $\theta$ satisfies a modular-type transformation law, $\theta(1/x) = \sqrt{x}\,\theta(x)$, which is a direct consequence of applying Poisson summation to the Gaussian function. Splitting the integral $\int_0^\infty$ at $x=1$ and using this transformation to rewrite the $\int_0^1$ piece in terms of $\omega(1/x)$ produces (after collecting the extra terms that the "$1+$" in $\theta$ contributes) a formula of the shape
+
+$$
+\pi^{-s/2}\Gamma(s/2)\zeta(s) \;=\; -\frac{1}{s} - \frac{1}{1-s} \;+\; \int_1^\infty \omega(x)\left(x^{s/2-1} + x^{(1-s)/2 - 1}\right) dx.
+$$
+
+The right-hand side is now visibly symmetric under $s \leftrightarrow 1-s$, and the integral converges for *every* complex $s$ (because $\omega(x)$ decays like $e^{-\pi x}$ as $x\to\infty$, beating any power of $x$). That gives, in one stroke, both the analytic continuation of $\zeta$ to a meromorphic function on all of $\mathbb{C}$ (with a single simple pole, at $s=1$, coming from the $-1/(1-s)$ term) and the functional equation below — because the completed function $\xi(s) := \pi^{-s/2}\Gamma(s/2)\zeta(s)$ visibly satisfies $\xi(s) = \xi(1-s)$.
+
+## The functional equation
+
+Stripping the $\Gamma(s/2)\pi^{-s/2}$ normalization out of $\xi(s)=\xi(1-s)$ and using Gamma's duplication and reflection identities (a purely mechanical, if slightly tedious, algebraic step I'll take on faith here) gives the classical form:
+
+$$
+\zeta(s) = 2^s \pi^{s-1} \sin\!\left(\frac{\pi s}{2}\right) \Gamma(1-s)\, \zeta(1-s).
+$$
+
+This single identity is doing a lot of work: it relates the value of $\zeta$ at $s$ to its value at the "mirror point" $1-s$, and it's the tool for essentially everything past this point in the post — the trivial zeros, the value at negative integers, and the structural reason the critical line $\operatorname{Re}(s) = \tfrac12$ (the fixed axis of $s \leftrightarrow 1-s$) is special.
+
+## The trivial zeros, derived properly
+
+Unlike the continuation and the functional equation itself, this part is fully derivable from what we already have — no sketching required. Plug $s = -2m$ for a positive integer $m$ into the functional equation:
+
+$$
+\zeta(-2m) = 2^{-2m}\, \pi^{-2m-1}\, \sin(-m\pi)\, \Gamma(1+2m)\, \zeta(1+2m).
+$$
+
+Check each factor. $2^{-2m}$ and $\pi^{-2m-1}$ are just positive real numbers. $\sin(-m\pi) = 0$ for every integer $m$, since sine vanishes at integer multiples of $\pi$. $\Gamma(1+2m) = (2m)!$ is finite — Gamma's poles sit only at $0, -1, -2, \ldots$, and $1+2m$ is a positive integer for $m \ge 1$, nowhere near those poles, so this factor cannot blow up and rescue the vanishing sine. And $\zeta(1+2m)$ is just the original convergent series evaluated at a point with $\operatorname{Re}(1+2m) = 1+2m > 1$, hence finite. A finite quantity times zero is zero:
+
+$$
+\zeta(-2,\, -4,\, -6,\, \ldots) = 0.
+$$
+
+These are the **trivial zeros**. It's worth checking why $s=0$ is *not* among them, since naively $\sin(\pi \cdot 0/2) = 0$ too. The difference is that at $s=0$, the functional equation reads $\zeta(0) = \pi^{-1}\sin(0)\,\Gamma(1)\,\zeta(1)$ — and $\zeta(1)$ is exactly the pole of the original series, i.e. $\infty$. So the right side is a genuine $0 \cdot \infty$ indeterminate form, not a clean zero, and resolving it requires a limiting argument (it works out to the finite, nonzero value $\zeta(0) = -\tfrac12$). That's why the trivial zeros start at $-2$, not $0$.
+
+## About that $-1/12$
+
+The functional equation also hands us $\zeta(-1)$ directly, and it's worth computing since it's simultaneously the internet's favorite fact about $\zeta$ and its favorite source of a badly garbled claim. Plug $s = -1$:
+
+$$
+\begin{aligned}
+\zeta(-1) &= 2^{-1}\pi^{-2}\sin\!\left(-\frac{\pi}{2}\right)\Gamma(2)\,\zeta(2) \\
+&= \frac{1}{2}\cdot\frac{1}{\pi^2}\cdot(-1)\cdot 1 \cdot \frac{\pi^2}{6} \\
+&= -\frac{1}{12}.
+\end{aligned}
+$$
+
+That last step used $\zeta(2) = \pi^2/6$ — the Basel sum from the very first line of this post — so this comes full circle nicely.
+
+Here's the part to be careful about. $\zeta(-1) = -1/12$ is a true statement about the value of the **analytically continued function** at the point $s=-1$. It is emphatically *not* a statement that the series $1 + 2 + 3 + 4 + \cdots$ converges to $-1/12$ — that series has terms growing without bound and diverges to $+\infty$ in every ordinary sense of "sum." The formula $\zeta(s) = \sum n^{-s}$ is only valid as a convergent series for $\operatorname{Re}(s) > 1$; at $s=-1$ it is not the same object as $1+2+3+\cdots$, it's the value of a different (continued) function that happens to agree with that series' defining expression only where the expression actually converges. The popular framing that "physicists sum the naturals and get $-1/12$" conflates these two things, and it's worth resisting — $\zeta(-1)=-1/12$ is a fact about a specific holomorphic function evaluated off its original domain, full stop, not a resummation of a divergent series in any sense where "sum" keeps its ordinary meaning. (There *are* legitimate divergent-series regularization frameworks — Abel summation, zeta regularization itself — where $-1/12$ shows up as a regularized value assigned to $1+2+3+\cdots$ by convention, and that's a real and useful thing in, e.g., string theory and Casimir-effect calculations; but "regularized value under a specific convention" is a different claim than "the sum equals $-1/12$," and the distinction is exactly the caveat being made here.)
+
+The same functional-equation machine gives every $\zeta(-n)$ for $n \ge 1$ as a rational number (they're related to the Bernoulli numbers: $\zeta(-n) = -B_{n+1}/(n+1)$) — Euler had already found these values, using divergent-series techniques rather than a rigorous continuation, well before Riemann's construction made them precise.
+
+## The critical strip and the Riemann Hypothesis
+
+The trivial zeros are, as the name suggests, the easy ones — they follow immediately from the sine factor. The Euler product rules out any zero with $\operatorname{Re}(s) > 1$, and a further (nontrivial, not shown here) argument rules out zeros exactly on the line $\operatorname{Re}(s)=1$ as well. That leaves the **critical strip** $0 < \operatorname{Re}(s) < 1$ as the only place any other zeros can live, and $\zeta$ does have infinitely many zeros there — the **nontrivial zeros**.
+
+The **Riemann Hypothesis** (Riemann's 1859 paper, where he introduced most of this machinery and stated the conjecture) says that every nontrivial zero has real part exactly $\tfrac12$ — that they all lie on the **critical line** $\operatorname{Re}(s) = \tfrac12$, the line fixed by the symmetry $s \leftrightarrow 1-s$ of the functional equation. This is, plainly, unproven. It is one of the Clay Mathematics Institute's Millennium Prize Problems, extensive computer verification has found no counterexample among a very large number of zeros checked directly on the line, and a great deal of theory has been built assuming it — but none of that constitutes a proof, and stating otherwise would be wrong.
+
+## Why the zeros actually matter
+
+It's fair to ask why the exact real part of some zeros of an analytically-continued function should be a famous open problem rather than a curiosity. The answer is the **explicit formula**, which connects the zeros directly to the distribution of primes. Sketching its shape (not deriving it): there's a formula, due to von Mangoldt building on Riemann's approach, expressing a prime-counting function $\psi(x)$ (a weighted count of prime powers up to $x$) as
+
+$$
+\psi(x) = x \;-\; \sum_{\rho} \frac{x^{\rho}}{\rho} \;-\; \log(2\pi) \;-\; \tfrac12\log(1-x^{-2}),
+$$
+
+where the sum runs over the nontrivial zeros $\rho$. The main term $x$ is the "expected" growth (this is essentially the content of the Prime Number Theorem, proved in the 1890s independently by Hadamard and de la Vallée Poussin, showing $\pi(x) \sim x/\log x$); everything else is correction. Each zero $\rho = \beta + i\gamma$ contributes an oscillating term of size roughly $x^{\beta}$. If every zero has $\beta = \operatorname{Re}(\rho) = \tfrac12$ exactly — the Riemann Hypothesis — every one of those correction terms is of size about $\sqrt{x}$, giving the tightest possible control on the gap between the actual prime-counting function and its smooth approximation $\mathrm{Li}(x)$: an error bound of size roughly $O(\sqrt{x}\log x)$. If some zero had real part closer to $1$, primes would be allowed to clump and thin out far more irregularly than we currently believe they do, with an error term as large as roughly $x^{\beta}$ for that zero's real part $\beta$. So the Riemann Hypothesis is exactly the statement that the primes are distributed as smoothly and predictably as the analytic machinery is theoretically capable of showing — that's the actual stake, not just "an unsolved equation."
+
+## A numerical look at the critical line
+
+None of this requires taking anyone's word for the oscillation — you can see it. The chart below plots $|\zeta(\tfrac12 + it)|$ for real $t$ from $0$ to $60$, and it should visibly dip toward zero near several real values of $t$ (the first few nontrivial zeros sit near $t \approx 14.13,\ 21.02,\ 25.01,\ 30.42,\ 32.94,\ldots$).
+
+A quick note on how the number is actually computed, since it isn't a closed form: the direct Dirichlet series $\sum n^{-s}$ doesn't converge on the critical line at all ($\operatorname{Re}(s) = \tfrac12 < 1$), so this uses the classical trick of relating $\zeta$ to the **Dirichlet eta function**, $\eta(s) = \sum_{n=1}^{\infty} (-1)^{n-1} n^{-s} = (1-2^{1-s})\zeta(s)$, whose alternating series converges (conditionally) for $\operatorname{Re}(s) > 0$. The chart truncates that alternating series at $300$ terms and divides out the $(1-2^{1-s})$ factor. This is a genuine numerical approximation, not an exact evaluation — checked against the known zero locations above it tracks them well out to $t\approx 60$, but truncating an alternating series at a fixed number of terms loses accuracy as $t$ grows (the terms oscillate faster), so treat the far right of a much wider plot with more skepticism than the region shown here.
+
+<Chart fn="Math.hypot(Array.from({length:300},(_,i)=>i+1).reduce((a,n)=>a+(n%2?1:-1)*Math.pow(n,-0.5)*Math.cos(x*Math.log(n)),0),Array.from({length:300},(_,i)=>i+1).reduce((a,n)=>a+(n%2?1:-1)*Math.pow(n,-0.5)*Math.sin(x*Math.log(n)),0))/Math.hypot(1-Math.sqrt(2)*Math.cos(x*Math.log(2)),Math.sqrt(2)*Math.sin(x*Math.log(2)))" domain={[0, 60]} samples={600} xLabel="t" yLabel="|ζ(1/2 + it)|" />
+
+## Watching the Euler product converge
+
+Back to something fully rigorous and exact rather than approximate: the Euler product derivation earlier claimed that multiplying $(1-p^{-s})^{-1}$ over more and more primes converges to the same value as summing $n^{-s}$ over more and more integers. At $s=2$ both sides converge to $\pi^2/6 \approx 1.6449$, and it's a nice concrete check to watch both partial computations climb toward the same number, term by term:
+
+<Chart data={(() => {
+  const primes = [];
+  let candidate = 2;
+  while (primes.length < 15) {
+    let isPrime = true;
+    for (let i = 2; i * i <= candidate; i++) {
+      if (candidate % i === 0) { isPrime = false; break; }
+    }
+    if (isPrime) primes.push(candidate);
+    candidate++;
+  }
+  const target = Math.PI ** 2 / 6;
+  let dsum = 0;
+  let eprod = 1;
+  const rows = [];
+  for (let k = 1; k <= 15; k++) {
+    dsum += 1 / (k * k);
+    eprod *= 1 / (1 - 1 / (primes[k - 1] * primes[k - 1]));
+    rows.push({ x: k, y: dsum, series: 'Dirichlet partial sum Σ 1/n²' });
+    rows.push({ x: k, y: eprod, series: 'Euler partial product Π(1-p⁻²)⁻¹' });
+    rows.push({ x: k, y: target, series: 'π²/6' });
+  }
+  return rows;
+})()} marks={[{ type: 'line', x: 'x', y: 'y', stroke: 'series' }]} xLabel="terms used (k)" yLabel="partial value" />
+
+The product converges to $\pi^2/6$ noticeably faster than the sum does, term for term — using just the first 15 primes gets within about $0.006$ of the target, while the first 15 integers alone are still off by about $0.06$. That's a small, concrete illustration of the general fact underlying the whole Euler product argument: primes carry disproportionately more arithmetic information per term than integers do, which is exactly why a product over primes alone can reconstruct a sum over all integers.
+
+## Closing
+
+Everything here starts from a series that only converges on half the complex plane, extends uniquely (if you're willing to take the extension's existence on faith, or work through the theta-function argument yourself) to a function defined almost everywhere, and turns out to have zeros whose locations directly control how irregular the distribution of primes is allowed to be. Whether all of those zeros line up on a single vertical line is still, as of this writing, completely open.

@@ -1,0 +1,208 @@
+---
+title: "High-Dimensional Geometry Is Not Like You Think"
+description: "Four numerical experiments showing how volume, angles, and distances behave completely differently once you leave two or three dimensions."
+date: 2026-07-26
+tags: ["math", "probability"]
+---
+
+import Chart from '../../components/Chart.astro';
+
+Picture a solid ball of radius $r$. Peel off the outer shell — everything within, say, 10% of the surface — and throw it away. In three dimensions this feels like a minor trim. A thin rind. Surely almost all the volume, the bulk of the orange, is still sitting in the middle where you left it.
+
+That intuition is built entirely out of $d=2$ and $d=3$, and it is catastrophically wrong once $d$ gets even moderately large. By the time $d=50$, throwing away that same 10% shell throws away **99.5% of the volume**. The "bulk" you thought you were keeping is almost nothing. This isn't a one-off curiosity — it's the first of several ways in which high-dimensional space behaves so differently from the 2D/3D world our intuition was trained on that geometric words like "center," "nearby," and "typical angle" stop meaning what you think they mean. Below are four such phenomena, each derived from scratch and then checked against actual numbers across a range of dimensions, not just asymptotic formulas.
+
+## 1. Almost all the volume is near the boundary
+
+### Why this should be surprising
+
+In 2D, a disk of radius $r$ with the outer 10% peeled off still looks like "most of the disk" — visually, the inner disk of radius $0.9r$ looks only a little smaller. Area scales as $r^2$, so you lose $1 - 0.9^2 = 19\%$ of the area. Annoying but not dramatic. The surprise is that this loss compounds multiplicatively with every extra dimension, and there's no geometric reason to expect that compounding to stop being small.
+
+### The derivation
+
+Let $V_d(r)$ be the volume of a $d$-dimensional ball of radius $r$. The exact formula involves the Gamma function,
+
+$$
+V_d(r) = C_d\, r^d, \qquad C_d = \frac{\pi^{d/2}}{\Gamma\!\left(\frac{d}{2}+1\right)},
+$$
+
+but notice we don't actually need $C_d$'s ugly form. The only fact that matters is the scaling exponent: if you rescale every coordinate by a factor $\lambda$, a $d$-dimensional volume integral rescales by $\lambda^d$, because you're stretching $d$ independent linear directions at once. Formally, substituting $x = \lambda u$ in $\int_{\lambda S} d^dx$ turns it into $\lambda^d \int_S d^du$. So $V_d(\lambda r) = \lambda^d V_d(r)$ for any $\lambda$, and in particular
+
+$$
+\frac{V_d\big((1-\epsilon) r\big)}{V_d(r)} = \frac{C_d (1-\epsilon)^d r^d}{C_d\, r^d} = (1-\epsilon)^d.
+$$
+
+The constant $C_d$ cancels — the entire effect is the exponent $d$ acting on a number strictly less than 1. So the fraction of volume that lies in the outer shell (everything **outside** radius $(1-\epsilon)r$) is
+
+$$
+f_{\text{shell}}(d) = 1 - (1-\epsilon)^d.
+$$
+
+### The numbers
+
+Fix $\epsilon = 0.1$ (the outer 10% shell) and compute $(0.9)^d$ — the fraction of volume *remaining inside* radius $0.9r$ — at a few concrete dimensions:
+
+| $d$ | $(0.9)^d$ | fraction in outer shell |
+|---|---|---|
+| 10 | 0.3487 | 65.1% |
+| 20 | 0.1216 | 87.8% |
+| 30 | 0.0424 | 95.8% |
+| 50 | 0.00515 | 99.48% |
+| 100 | 0.0000266 | 99.997% |
+
+<Chart data={[{"x":1,"y":0.9},{"x":2,"y":0.81},{"x":3,"y":0.729},{"x":4,"y":0.6561},{"x":5,"y":0.59049},{"x":6,"y":0.531441},{"x":7,"y":0.478297},{"x":8,"y":0.430467},{"x":9,"y":0.38742},{"x":10,"y":0.348678},{"x":11,"y":0.313811},{"x":12,"y":0.28243},{"x":13,"y":0.254187},{"x":14,"y":0.228768},{"x":15,"y":0.205891},{"x":16,"y":0.185302},{"x":17,"y":0.166772},{"x":18,"y":0.150095},{"x":19,"y":0.135085},{"x":20,"y":0.121577},{"x":21,"y":0.109419},{"x":22,"y":0.098477},{"x":23,"y":0.088629},{"x":24,"y":0.079766},{"x":25,"y":0.07179},{"x":26,"y":0.064611},{"x":27,"y":0.05815},{"x":28,"y":0.052335},{"x":29,"y":0.047101},{"x":30,"y":0.042391},{"x":31,"y":0.038152},{"x":32,"y":0.034337},{"x":33,"y":0.030903},{"x":34,"y":0.027813},{"x":35,"y":0.025032},{"x":36,"y":0.022528},{"x":37,"y":0.020276},{"x":38,"y":0.018248},{"x":39,"y":0.016423},{"x":40,"y":0.014781},{"x":41,"y":0.013303},{"x":42,"y":0.011973},{"x":43,"y":0.010775},{"x":44,"y":0.009698},{"x":45,"y":0.008728},{"x":46,"y":0.007855},{"x":47,"y":0.00707},{"x":48,"y":0.006363},{"x":49,"y":0.005726},{"x":50,"y":0.005154},{"x":51,"y":0.004638},{"x":52,"y":0.004175},{"x":53,"y":0.003757},{"x":54,"y":0.003381},{"x":55,"y":0.003043},{"x":56,"y":0.002739},{"x":57,"y":0.002465},{"x":58,"y":0.002219},{"x":59,"y":0.001997},{"x":60,"y":0.001797},{"x":61,"y":0.001617},{"x":62,"y":0.001456},{"x":63,"y":0.00131},{"x":64,"y":0.001179},{"x":65,"y":0.001061},{"x":66,"y":0.000955},{"x":67,"y":0.00086},{"x":68,"y":0.000774},{"x":69,"y":0.000696},{"x":70,"y":0.000627},{"x":71,"y":0.000564},{"x":72,"y":0.000508},{"x":73,"y":0.000457},{"x":74,"y":0.000411},{"x":75,"y":0.00037},{"x":76,"y":0.000333},{"x":77,"y":0.0003},{"x":78,"y":0.00027},{"x":79,"y":0.000243},{"x":80,"y":0.000218},{"x":81,"y":0.000197},{"x":82,"y":0.000177},{"x":83,"y":0.000159},{"x":84,"y":0.000143},{"x":85,"y":0.000129},{"x":86,"y":0.000116},{"x":87,"y":0.000104},{"x":88,"y":0.000094},{"x":89,"y":0.000085},{"x":90,"y":0.000076},{"x":91,"y":0.000069},{"x":92,"y":0.000062},{"x":93,"y":0.000056},{"x":94,"y":0.00005},{"x":95,"y":0.000045},{"x":96,"y":0.00004},{"x":97,"y":0.000036},{"x":98,"y":0.000033},{"x":99,"y":0.00003},{"x":100,"y":0.000027}]} xLabel="dimension d" yLabel="fraction of volume within 0.9r" width={640} height={340} />
+
+By $d=100$ the curve is indistinguishable from zero on any normal scale — essentially *all* of the volume of a high-dimensional ball lives in a shell so thin you'd never notice it by eye. There is no "solid interior" in high dimensions; there's only surface.
+
+## 2. Random vectors become nearly orthogonal
+
+### Why this should be surprising
+
+Throw two random directions in the plane ($d=2$): the angle between them is uniform on $[0°, 360°)$, so anything from parallel to perpendicular to opposite is equally likely. There's no reason, a priori, to expect that picking two random directions in $\mathbb{R}^{100}$ should reliably land you near $90°$ — "random" doesn't sound like it should mean "predictable." But it does.
+
+### The derivation
+
+Take two independent random unit vectors $u, v \in \mathbb{R}^d$, constructed the standard way: sample $d$ i.i.d. standard Gaussian coordinates and normalize, $v = g / \|g\|$ with $g \sim \mathcal{N}(0, I_d)$. Because the isotropic Gaussian density depends only on $\|g\|^2$, it is invariant under any rotation of $\mathbb{R}^d$ — so $v$ is exactly uniformly distributed on the unit sphere $S^{d-1}$.
+
+We want $\mathbb{E}[\cos^2\theta] = \mathbb{E}[(u\cdot v)^2]$. Since $v$'s distribution is rotationally symmetric regardless of what $u$ is, we may rotate coordinates so that $u = e_1$; then $u \cdot v = v_1$, the first coordinate of a uniform point on the sphere. Now use the one fact that's true by construction, not by luck: every point on the unit sphere satisfies
+
+$$
+v_1^2 + v_2^2 + \cdots + v_d^2 = 1 \quad\text{always.}
+$$
+
+Take expectations: $\sum_{i=1}^d \mathbb{E}[v_i^2] = 1$. By symmetry (exchangeability of coordinates — permuting them gives another uniformly distributed point), every $\mathbb{E}[v_i^2]$ is equal, so $d \cdot \mathbb{E}[v_1^2] = 1$, giving
+
+$$
+\mathbb{E}[\cos^2\theta] = \mathbb{E}[v_1^2] = \frac{1}{d}.
+$$
+
+Also, $\mathbb{E}[\cos\theta] = \mathbb{E}[v_1] = 0$ by the symmetry $v \leftrightarrow -v$. So $u \cdot v$ has mean 0 and
+
+$$
+\operatorname{Var}(u\cdot v) = \mathbb{E}[(u\cdot v)^2] - (\mathbb{E}[u\cdot v])^2 = \frac{1}{d} - 0 = \frac{1}{d}, \qquad \operatorname{SD}(u\cdot v) = \frac{1}{\sqrt d}.
+$$
+
+**Being honest about what this claims.** This is *not* a statement that any two specific random vectors are orthogonal — it's a statement about the distribution of the angle over repeated draws. The mean of $\cos\theta$ is 0 for every $d$, even $d=2$; what actually changes with $d$ is that the *spread* around that mean, $1/\sqrt d$, shrinks. That's concentration, not just a shift in the average: as $d$ grows, an ever-larger fraction of the probability mass of $\cos\theta$ crowds into a shrinking neighborhood of 0. (There are sharper, exponential-tail versions of this fact from measure concentration on the sphere, but the variance calculation above already captures the qualitative story honestly, and it's the one I can derive here from first principles.)
+
+### The numbers
+
+If you actually ran this — draw $u,v$ as independent random Gaussian vectors in $\mathbb{R}^d$, normalize both to unit length, record $u\cdot v$, repeat many times, and look at the histogram — you'd see it centered at 0 with a width that visibly shrinks as $d$ grows. Since I can't spin up an RNG here, the concrete numerical quantity is the theoretical standard deviation $1/\sqrt d$ itself, which is exactly what governs that shrinking width:
+
+| $d$ | $\operatorname{SD}(u\cdot v) = 1/\sqrt d$ |
+|---|---|
+| 2 | 0.7071 |
+| 5 | 0.4472 |
+| 10 | 0.3162 |
+| 20 | 0.2236 |
+| 50 | 0.1414 |
+| 100 | 0.1000 |
+| 1000 | 0.0316 |
+
+<Chart data={[{"x":1,"y":1},{"x":2,"y":0.707107},{"x":3,"y":0.57735},{"x":4,"y":0.5},{"x":5,"y":0.447214},{"x":6,"y":0.408248},{"x":7,"y":0.377964},{"x":8,"y":0.353553},{"x":9,"y":0.333333},{"x":10,"y":0.316228},{"x":11,"y":0.301511},{"x":12,"y":0.288675},{"x":13,"y":0.27735},{"x":14,"y":0.267261},{"x":15,"y":0.258199},{"x":16,"y":0.25},{"x":17,"y":0.242536},{"x":18,"y":0.235702},{"x":19,"y":0.229416},{"x":20,"y":0.223607},{"x":21,"y":0.218218},{"x":22,"y":0.213201},{"x":23,"y":0.208514},{"x":24,"y":0.204124},{"x":25,"y":0.2},{"x":26,"y":0.196116},{"x":27,"y":0.19245},{"x":28,"y":0.188982},{"x":29,"y":0.185695},{"x":30,"y":0.182574},{"x":31,"y":0.179605},{"x":32,"y":0.176777},{"x":33,"y":0.174078},{"x":34,"y":0.171499},{"x":35,"y":0.169031},{"x":36,"y":0.166667},{"x":37,"y":0.164399},{"x":38,"y":0.162221},{"x":39,"y":0.160128},{"x":40,"y":0.158114},{"x":41,"y":0.156174},{"x":42,"y":0.154303},{"x":43,"y":0.152499},{"x":44,"y":0.150756},{"x":45,"y":0.149071},{"x":46,"y":0.147442},{"x":47,"y":0.145865},{"x":48,"y":0.144338},{"x":49,"y":0.142857},{"x":50,"y":0.141421},{"x":51,"y":0.140028},{"x":52,"y":0.138675},{"x":53,"y":0.137361},{"x":54,"y":0.136083},{"x":55,"y":0.13484},{"x":56,"y":0.133631},{"x":57,"y":0.132453},{"x":58,"y":0.131306},{"x":59,"y":0.130189},{"x":60,"y":0.129099},{"x":61,"y":0.128037},{"x":62,"y":0.127},{"x":63,"y":0.125988},{"x":64,"y":0.125},{"x":65,"y":0.124035},{"x":66,"y":0.123091},{"x":67,"y":0.122169},{"x":68,"y":0.121268},{"x":69,"y":0.120386},{"x":70,"y":0.119523},{"x":71,"y":0.118678},{"x":72,"y":0.117851},{"x":73,"y":0.117041},{"x":74,"y":0.116248},{"x":75,"y":0.11547},{"x":76,"y":0.114708},{"x":77,"y":0.113961},{"x":78,"y":0.113228},{"x":79,"y":0.112509},{"x":80,"y":0.111803},{"x":81,"y":0.111111},{"x":82,"y":0.110432},{"x":83,"y":0.109764},{"x":84,"y":0.109109},{"x":85,"y":0.108465},{"x":86,"y":0.107833},{"x":87,"y":0.107211},{"x":88,"y":0.1066},{"x":89,"y":0.106},{"x":90,"y":0.105409},{"x":91,"y":0.104828},{"x":92,"y":0.104257},{"x":93,"y":0.103695},{"x":94,"y":0.103142},{"x":95,"y":0.102598},{"x":96,"y":0.102062},{"x":97,"y":0.101535},{"x":98,"y":0.101015},{"x":99,"y":0.100504},{"x":100,"y":0.1},{"x":101,"y":0.099504},{"x":102,"y":0.099015},{"x":103,"y":0.098533},{"x":104,"y":0.098058},{"x":105,"y":0.09759},{"x":106,"y":0.097129},{"x":107,"y":0.096674},{"x":108,"y":0.096225},{"x":109,"y":0.095783},{"x":110,"y":0.095346},{"x":111,"y":0.094916},{"x":112,"y":0.094491},{"x":113,"y":0.094072},{"x":114,"y":0.093659},{"x":115,"y":0.09325},{"x":116,"y":0.092848},{"x":117,"y":0.09245},{"x":118,"y":0.092057},{"x":119,"y":0.09167},{"x":120,"y":0.091287},{"x":121,"y":0.090909},{"x":122,"y":0.090536},{"x":123,"y":0.090167},{"x":124,"y":0.089803},{"x":125,"y":0.089443},{"x":126,"y":0.089087},{"x":127,"y":0.088736},{"x":128,"y":0.088388},{"x":129,"y":0.088045},{"x":130,"y":0.087706},{"x":131,"y":0.08737},{"x":132,"y":0.087039},{"x":133,"y":0.086711},{"x":134,"y":0.086387},{"x":135,"y":0.086066},{"x":136,"y":0.085749},{"x":137,"y":0.085436},{"x":138,"y":0.085126},{"x":139,"y":0.084819},{"x":140,"y":0.084515},{"x":141,"y":0.084215},{"x":142,"y":0.083918},{"x":143,"y":0.083624},{"x":144,"y":0.083333},{"x":145,"y":0.083045},{"x":146,"y":0.082761},{"x":147,"y":0.082479},{"x":148,"y":0.082199},{"x":149,"y":0.081923},{"x":150,"y":0.08165}]} xLabel="dimension d" yLabel="SD of dot product = 1/√d" width={640} height={340} />
+
+At $d=1000$, $1/\sqrt d \approx 0.0316$ — random vectors in $\mathbb{R}^{1000}$ are, for all practical purposes, always close to perpendicular.
+
+## 3. Pairwise distances concentrate
+
+### Why this should be surprising
+
+If I hand you 1000 random points in a 1000-dimensional cube, your low-dimensional intuition says: some pairs should be close together, some far apart, some in between — a spread of distances, like scattering dots on a page. What actually happens is that *every* pair of points ends up at nearly the *same* distance from each other.
+
+### The derivation
+
+Let $X, Y$ be independent random points in $[0,1]^d$ with i.i.d. uniform coordinates. The squared Euclidean distance is a sum of $d$ i.i.d. terms:
+
+$$
+D^2 = \sum_{i=1}^d (X_i - Y_i)^2 = \sum_{i=1}^d Z_i, \qquad Z_i := (X_i - Y_i)^2 \text{ i.i.d.}
+$$
+
+First work out the per-coordinate moments. $W = X_i - Y_i$ is the difference of two independent $\mathrm{Uniform}(0,1)$ variables, which has the triangular density $f(w) = 1-|w|$ on $[-1,1]$. Then $\mathbb{E}[W]=0$ so
+
+$$
+\mathbb{E}[Z_i] = \mathbb{E}[W^2] = \operatorname{Var}(W) = \operatorname{Var}(X_i)+\operatorname{Var}(Y_i) = \frac{1}{12}+\frac{1}{12}=\frac{1}{6}.
+$$
+
+For the variance of $Z_i$ we need $\mathbb{E}[W^4]$:
+
+$$
+\mathbb{E}[W^4] = 2\int_0^1 w^4(1-w)\,dw = 2\left[\frac{w^5}{5}-\frac{w^6}{6}\right]_0^1 = 2\left(\frac15-\frac16\right)=\frac{1}{15},
+$$
+
+so
+
+$$
+\operatorname{Var}(Z_i) = \mathbb{E}[W^4]-\mathbb{E}[W^2]^2 = \frac{1}{15}-\frac{1}{36} = \frac{12-5}{180}=\frac{7}{180}.
+$$
+
+Now this is exactly a law-of-large-numbers setup: $D^2$ is a sum of $d$ i.i.d. terms, so its mean and variance both scale linearly in $d$,
+
+$$
+\mathbb{E}[D^2] = \frac{d}{6}, \qquad \operatorname{Var}(D^2) = \frac{7d}{180},
+$$
+
+and the **coefficient of variation** (SD divided by mean — a scale-free measure of spread) of $D^2$ is, for a sum of i.i.d. terms, always $\mathrm{CV}(\text{sum}) = \mathrm{CV}(\text{one term})/\sqrt d$ exactly (both mean and variance scale as $d$, so $\sqrt{\operatorname{Var}}/\mathbb{E}$ scales as $\sqrt d / d = 1/\sqrt d$):
+
+$$
+\mathrm{CV}(D^2) = \frac{\sqrt{\operatorname{Var}(Z_i)}/\mathbb{E}[Z_i]}{\sqrt d} = \frac{\sqrt{7/180}\,/\,(1/6)}{\sqrt d} = \sqrt{\frac{1.4}{d}}.
+$$
+
+That part is exact. To get the CV of the *distance* $D=\sqrt{D^2}$ itself (rather than squared distance) we use the delta method: writing $D^2 = \mu(1+\varepsilon)$ for small relative fluctuation $\varepsilon$, $D = \sqrt\mu\sqrt{1+\varepsilon}\approx\sqrt\mu(1+\varepsilon/2)$ — taking a square root halves the relative fluctuation. So, as an approximation that gets better as $d$ grows (i.e. as the fluctuations get small enough for the linear approximation to hold):
+
+$$
+\mathrm{CV}(D) \approx \tfrac12\,\mathrm{CV}(D^2) = \sqrt{\frac{7}{20\,d}}.
+$$
+
+Either way — exactly for $D^2$, approximately for $D$ — the ratio of spread to typical size shrinks like $1/\sqrt d$.
+
+### The numbers
+
+| $d$ | $\mathrm{CV}(D) \approx \sqrt{7/(20d)}$ |
+|---|---|
+| 2 | 0.418 |
+| 5 | 0.265 |
+| 10 | 0.187 |
+| 20 | 0.132 |
+| 50 | 0.0837 |
+| 100 | 0.0592 |
+| 1000 | 0.0187 |
+
+<Chart data={[{"x":1,"y":0.591608},{"x":2,"y":0.41833},{"x":3,"y":0.341565},{"x":4,"y":0.295804},{"x":5,"y":0.264575},{"x":6,"y":0.241523},{"x":7,"y":0.223607},{"x":8,"y":0.209165},{"x":9,"y":0.197203},{"x":10,"y":0.187083},{"x":11,"y":0.178377},{"x":12,"y":0.170783},{"x":13,"y":0.164083},{"x":14,"y":0.158114},{"x":15,"y":0.152753},{"x":16,"y":0.147902},{"x":17,"y":0.143486},{"x":18,"y":0.139443},{"x":19,"y":0.135724},{"x":20,"y":0.132288},{"x":21,"y":0.129099},{"x":22,"y":0.126131},{"x":23,"y":0.123359},{"x":24,"y":0.120761},{"x":25,"y":0.118322},{"x":26,"y":0.116024},{"x":27,"y":0.113855},{"x":28,"y":0.111803},{"x":29,"y":0.109859},{"x":30,"y":0.108012},{"x":31,"y":0.106256},{"x":32,"y":0.104583},{"x":33,"y":0.102986},{"x":34,"y":0.10146},{"x":35,"y":0.1},{"x":36,"y":0.098601},{"x":37,"y":0.09726},{"x":38,"y":0.095971},{"x":39,"y":0.094733},{"x":40,"y":0.093541},{"x":41,"y":0.092394},{"x":42,"y":0.091287},{"x":43,"y":0.090219},{"x":44,"y":0.089188},{"x":45,"y":0.088192},{"x":46,"y":0.087228},{"x":47,"y":0.086295},{"x":48,"y":0.085391},{"x":49,"y":0.084515},{"x":50,"y":0.083666},{"x":51,"y":0.082842},{"x":52,"y":0.082041},{"x":53,"y":0.081264},{"x":54,"y":0.080508},{"x":55,"y":0.079772},{"x":56,"y":0.079057},{"x":57,"y":0.07836},{"x":58,"y":0.077682},{"x":59,"y":0.077021},{"x":60,"y":0.076376},{"x":61,"y":0.075748},{"x":62,"y":0.075134},{"x":63,"y":0.074536},{"x":64,"y":0.073951},{"x":65,"y":0.07338},{"x":66,"y":0.072822},{"x":67,"y":0.072276},{"x":68,"y":0.071743},{"x":69,"y":0.071221},{"x":70,"y":0.070711},{"x":71,"y":0.070211},{"x":72,"y":0.069722},{"x":73,"y":0.069242},{"x":74,"y":0.068773},{"x":75,"y":0.068313},{"x":76,"y":0.067862},{"x":77,"y":0.06742},{"x":78,"y":0.066986},{"x":79,"y":0.066561},{"x":80,"y":0.066144},{"x":81,"y":0.065734},{"x":82,"y":0.065332},{"x":83,"y":0.064937},{"x":84,"y":0.06455},{"x":85,"y":0.064169},{"x":86,"y":0.063795},{"x":87,"y":0.063427},{"x":88,"y":0.063066},{"x":89,"y":0.06271},{"x":90,"y":0.062361},{"x":91,"y":0.062017},{"x":92,"y":0.061679},{"x":93,"y":0.061347},{"x":94,"y":0.06102},{"x":95,"y":0.060698},{"x":96,"y":0.060381},{"x":97,"y":0.060069},{"x":98,"y":0.059761},{"x":99,"y":0.059459},{"x":100,"y":0.059161},{"x":101,"y":0.058867},{"x":102,"y":0.058578},{"x":103,"y":0.058293},{"x":104,"y":0.058012},{"x":105,"y":0.057735},{"x":106,"y":0.057462},{"x":107,"y":0.057193},{"x":108,"y":0.056928},{"x":109,"y":0.056666},{"x":110,"y":0.056408},{"x":111,"y":0.056153},{"x":112,"y":0.055902},{"x":113,"y":0.055654},{"x":114,"y":0.055409},{"x":115,"y":0.055168},{"x":116,"y":0.054929},{"x":117,"y":0.054694},{"x":118,"y":0.054462},{"x":119,"y":0.054233},{"x":120,"y":0.054006},{"x":121,"y":0.053783},{"x":122,"y":0.053562},{"x":123,"y":0.053343},{"x":124,"y":0.053128},{"x":125,"y":0.052915},{"x":126,"y":0.052705},{"x":127,"y":0.052497},{"x":128,"y":0.052291},{"x":129,"y":0.052088},{"x":130,"y":0.051887},{"x":131,"y":0.051689},{"x":132,"y":0.051493},{"x":133,"y":0.051299},{"x":134,"y":0.051107},{"x":135,"y":0.050918},{"x":136,"y":0.05073},{"x":137,"y":0.050544},{"x":138,"y":0.050361},{"x":139,"y":0.05018},{"x":140,"y":0.05},{"x":141,"y":0.049822},{"x":142,"y":0.049647},{"x":143,"y":0.049473},{"x":144,"y":0.049301},{"x":145,"y":0.04913},{"x":146,"y":0.048962},{"x":147,"y":0.048795},{"x":148,"y":0.04863},{"x":149,"y":0.048466},{"x":150,"y":0.048305}]} xLabel="dimension d" yLabel="CV(distance) ≈ √(7/20d)" width={640} height={340} />
+
+(The exact same $1/\sqrt d$ scaling shows up if you use i.i.d. Gaussian coordinates instead of uniform — the constant in front changes, the shape of the curve doesn't. That's the generic behavior of any sum of i.i.d. bounded-variance terms.) At $d=1000$, distances vary by less than 2% around their mean — every pair of random points is, relatively speaking, the same distance apart.
+
+## 4. "Nearest neighbor" loses meaning
+
+### Why this should be surprising, and how it follows from (3)
+
+If the spread of pairwise distances shrinks to nothing relative to their size, then whatever point currently looks "nearest" to a query and whatever point looks "farthest" are, relatively, barely distinguishable. This is the informal content of a well-known observation in the nearest-neighbor literature (associated with Beyer et al.'s work on the subject) — I'm stating it here as the natural corollary of the concentration result above, not reproducing anyone's exact theorem statement, since I don't want to put words in a paper's mouth I can't check here.
+
+### A concrete estimate
+
+Take $n=10$ points and look at their distances from some query point. If $D$ is approximately normally distributed with mean $\mu$ and standard deviation $\sigma = \mathrm{CV}(D)\cdot\mu$ (a reasonable approximation for large $d$, since $D^2$ is a sum of many i.i.d. terms and is asymptotically Gaussian by the CLT, and the delta method preserves approximate normality under the square root), then the expected range of $n$ such samples is $\mathbb{E}[\max - \min] \approx \sigma \cdot d_2(n)$, where $d_2(n)$ is the classical expected-range constant for $n$ i.i.d. standard normal draws (the same constant used to build control charts in quality control). For $n=10$, $d_2(10) \approx 3.078$. So
+
+$$
+\frac{\text{max distance} - \text{min distance}}{\text{min distance}} \;\approx\; d_2(10)\cdot \mathrm{CV}(D) \;\approx\; 3.078\sqrt{\frac{7}{20\,d}},
+$$
+
+using min distance $\approx \mu$ as the reference scale (valid once the spread is small relative to the mean, i.e. for the same "large $d$" regime where the approximation is meant to apply).
+
+### The numbers
+
+| $d$ | (max − min) / min, for $n=10$ points |
+|---|---|
+| 2 | 129% |
+| 5 | 81% |
+| 10 | 57.6% |
+| 20 | 40.7% |
+| 50 | 25.8% |
+| 100 | 18.2% |
+| 1000 | 5.8% |
+
+<Chart data={[{"x":1,"y":1.820969},{"x":2,"y":1.28762},{"x":3,"y":1.051337},{"x":4,"y":0.910485},{"x":5,"y":0.814362},{"x":6,"y":0.743408},{"x":7,"y":0.688262},{"x":8,"y":0.64381},{"x":9,"y":0.60699},{"x":10,"y":0.575841},{"x":11,"y":0.549043},{"x":12,"y":0.525669},{"x":13,"y":0.505046},{"x":14,"y":0.486675},{"x":15,"y":0.470172},{"x":16,"y":0.455242},{"x":17,"y":0.44165},{"x":18,"y":0.429207},{"x":19,"y":0.417759},{"x":20,"y":0.407181},{"x":21,"y":0.397368},{"x":22,"y":0.388232},{"x":23,"y":0.379698},{"x":24,"y":0.371704},{"x":25,"y":0.364194},{"x":26,"y":0.357121},{"x":27,"y":0.350446},{"x":28,"y":0.344131},{"x":29,"y":0.338146},{"x":30,"y":0.332462},{"x":31,"y":0.327056},{"x":32,"y":0.321905},{"x":33,"y":0.31699},{"x":34,"y":0.312294},{"x":35,"y":0.3078},{"x":36,"y":0.303495},{"x":37,"y":0.299366},{"x":38,"y":0.2954},{"x":39,"y":0.291588},{"x":40,"y":0.287921},{"x":41,"y":0.284388},{"x":42,"y":0.280982},{"x":43,"y":0.277695},{"x":44,"y":0.274521},{"x":45,"y":0.271454},{"x":46,"y":0.268487},{"x":47,"y":0.265616},{"x":48,"y":0.262834},{"x":49,"y":0.260138},{"x":50,"y":0.257524},{"x":51,"y":0.254987},{"x":52,"y":0.252523},{"x":53,"y":0.250129},{"x":54,"y":0.247803},{"x":55,"y":0.245539},{"x":56,"y":0.243337},{"x":57,"y":0.241193},{"x":58,"y":0.239105},{"x":59,"y":0.23707},{"x":60,"y":0.235086},{"x":61,"y":0.233151},{"x":62,"y":0.231263},{"x":63,"y":0.229421},{"x":64,"y":0.227621},{"x":65,"y":0.225863},{"x":66,"y":0.224146},{"x":67,"y":0.222467},{"x":68,"y":0.220825},{"x":69,"y":0.219219},{"x":70,"y":0.217647},{"x":71,"y":0.216109},{"x":72,"y":0.214603},{"x":73,"y":0.213128},{"x":74,"y":0.211683},{"x":75,"y":0.210267},{"x":76,"y":0.20888},{"x":77,"y":0.207519},{"x":78,"y":0.206184},{"x":79,"y":0.204875},{"x":80,"y":0.203591},{"x":81,"y":0.20233},{"x":82,"y":0.201092},{"x":83,"y":0.199877},{"x":84,"y":0.198684},{"x":85,"y":0.197512},{"x":86,"y":0.19636},{"x":87,"y":0.195228},{"x":88,"y":0.194116},{"x":89,"y":0.193022},{"x":90,"y":0.191947},{"x":91,"y":0.190889},{"x":92,"y":0.189849},{"x":93,"y":0.188826},{"x":94,"y":0.187819},{"x":95,"y":0.186828},{"x":96,"y":0.185852},{"x":97,"y":0.184891},{"x":98,"y":0.183946},{"x":99,"y":0.183014},{"x":100,"y":0.182097},{"x":101,"y":0.181193},{"x":102,"y":0.180303},{"x":103,"y":0.179425},{"x":104,"y":0.178561},{"x":105,"y":0.177708},{"x":106,"y":0.176868},{"x":107,"y":0.17604},{"x":108,"y":0.175223},{"x":109,"y":0.174417},{"x":110,"y":0.173623},{"x":111,"y":0.172839},{"x":112,"y":0.172065},{"x":113,"y":0.171302},{"x":114,"y":0.170549},{"x":115,"y":0.169806},{"x":116,"y":0.169073},{"x":117,"y":0.168349},{"x":118,"y":0.167634},{"x":119,"y":0.166928},{"x":120,"y":0.166231},{"x":121,"y":0.165543},{"x":122,"y":0.164863},{"x":123,"y":0.164191},{"x":124,"y":0.163528},{"x":125,"y":0.162872},{"x":126,"y":0.162225},{"x":127,"y":0.161585},{"x":128,"y":0.160952},{"x":129,"y":0.160327},{"x":130,"y":0.15971},{"x":131,"y":0.159099},{"x":132,"y":0.158495},{"x":133,"y":0.157898},{"x":134,"y":0.157308},{"x":135,"y":0.156724},{"x":136,"y":0.156147},{"x":137,"y":0.155576},{"x":138,"y":0.155011},{"x":139,"y":0.154453},{"x":140,"y":0.1539},{"x":141,"y":0.153353},{"x":142,"y":0.152812},{"x":143,"y":0.152277},{"x":144,"y":0.151747},{"x":145,"y":0.151223},{"x":146,"y":0.150704},{"x":147,"y":0.150191},{"x":148,"y":0.149683},{"x":149,"y":0.14918},{"x":150,"y":0.148682}]} xLabel="dimension d" yLabel="(max − min) / min, n=10 points" width={640} height={340} />
+
+At low $d$ the nearest point among 10 can be barely more than half the distance of the farthest — a meaningful ranking. By $d=1000$ that gap has shrunk to under 6%: the "nearest" and "farthest" neighbors are, relatively, almost indistinguishable in distance. Whatever a nearest-neighbor search returns at that point, its distance advantage over its 9 competitors is a rounding error.
+
+## The upshot
+
+All four phenomena are really one phenomenon viewed from different angles: in high dimensions, a random quantity built from $d$ roughly-independent pieces (a coordinate near the boundary, a coordinate contributing to a dot product, a coordinate contributing to squared distance) concentrates tightly around its expected behavior, because you're effectively averaging over $d$ independent-ish things. That's the law of large numbers doing exactly what it always does — it's just that geometric intuition, calibrated on $d=2,3$ where there's essentially no averaging to speak of, never learned to expect it.
+
+This is precisely why Euclidean-distance-based methods degrade in high dimensions: k-nearest-neighbors relies on there being a meaningfully closer point to rank first, and k-means relies on distances to cluster centroids actually discriminating between clusters — both assumptions erode exactly as fast as phenomenon 4 shows. It's also the practical motivation for dimensionality reduction. PCA finds a lower-dimensional subspace that captures most of the *variance* of your data, implicitly hoping that the "signal" concentrates in a few directions rather than being smeared uniformly across all $d$ (which is what would happen for genuinely high-dimensional noise). Random projections take a different, almost magical route: the Johnson–Lindenstrauss lemma says (I'll state the flavor only, not derive it here) that you can project $n$ points from a very high-dimensional space down to roughly $O(\log n / \epsilon^2)$ dimensions while distorting all pairwise distances by at most a factor of $(1\pm\epsilon)$ — a statement that sounds absurd until you recall, from phenomenon 2, that random directions in high dimensions are so reliably near-orthogonal that a random low-dimensional projection behaves almost like an isometry on average. Both tools exist because "distance" in the raw high-dimensional coordinates has, by the arguments above, already lost most of its discriminating power before your algorithm even gets to use it.

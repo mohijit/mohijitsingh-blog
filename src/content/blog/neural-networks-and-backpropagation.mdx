@@ -1,0 +1,351 @@
+---
+title: "How neural networks learn: deriving backpropagation from scratch"
+description: "A from-scratch derivation of backpropagation — from a single neuron to the chain-rule recursion that makes training networks with millions of parameters computationally tractable."
+date: 2026-07-19
+tags: ["math", "ai"]
+---
+
+import Chart from '../../components/Chart.astro';
+
+Suppose you have a function with a few million adjustable numbers in it, and a pile of data you want it to fit. Calculus tells you exactly what to do: reduce a scalar loss $L$ by moving every parameter against its gradient,
+
+$$
+\theta_i \leftarrow \theta_i - \eta \frac{\partial L}{\partial \theta_i}.
+$$
+
+That line is the entire idea. The problem is not the idea — it's computing the right-hand side. You need $\partial L/\partial \theta_i$ for every one of the million parameters, and you need it often, ideally once per training step. The obvious way to get a derivative when you don't have a formula for one is finite differences: nudge $\theta_i$ by a small $\epsilon$, rerun the whole computation, and estimate
+
+$$
+\frac{\partial L}{\partial \theta_i} \approx \frac{L(\theta + \epsilon e_i) - L(\theta)}{\epsilon}.
+$$
+
+This works, in the sense that it converges to the right answer. It is also completely hopeless at scale. Each of those quotients costs one full forward pass through the network, and you need one per parameter — so a single gradient computation costs $O(P)$ forward passes for $P$ parameters. A network with a few million weights would need a few million forward passes just to take one training step. On top of that, $\epsilon$ has no good value: too large and you're measuring curvature, not slope (truncation error); too small and floating-point subtraction of two nearly-equal numbers wipes out your precision (cancellation error). Finite differences are a fine way to *check* a gradient calculation on a handful of parameters. They are not a way to train anything.
+
+Backpropagation is the answer to a much more specific question: for the particular family of nested compositions that a feedforward network computes, is there a way to get *all* the partial derivatives, exactly, for the same asymptotic cost as one forward pass? There is, and the reason is almost entirely about reusing work — the same intermediate quantity gets reused across thousands of different partial derivatives instead of being recomputed for each one. That reuse is what this post derives, carefully, from the definition of a neuron up to the update rule you'd actually code.
+
+## A single neuron
+
+A neuron takes a vector of inputs $x$, forms a weighted sum plus a bias, and passes the result through a nonlinearity $\sigma$:
+
+$$
+a = \sigma(w \cdot x + b).
+$$
+
+The weighted sum $w \cdot x + b$ is just an affine function of $x$ — geometrically, its zero set is a hyperplane, and $w$ controls the hyperplane's orientation while $b$ shifts it. On its own this is a linear classifier. Everything a neural network can do beyond that comes from stacking these and squashing with $\sigma$ in between. It's worth being precise about why the squashing is not optional.
+
+## Why depth needs nonlinearity
+
+Suppose you build a two-layer network but forget the nonlinearity — each layer is a pure affine map:
+
+$$
+a^{(1)} = W^{(1)}x + b^{(1)}, \qquad a^{(2)} = W^{(2)}a^{(1)} + b^{(2)}.
+$$
+
+Substitute the first into the second:
+
+$$
+a^{(2)} = W^{(2)}\left(W^{(1)}x + b^{(1)}\right) + b^{(2)} = \underbrace{\left(W^{(2)}W^{(1)}\right)}_{W_{\text{eff}}}x + \underbrace{\left(W^{(2)}b^{(1)} + b^{(2)}\right)}_{b_{\text{eff}}}.
+$$
+
+That's exactly the form of a single affine layer, $a^{(2)} = W_{\text{eff}}x + b_{\text{eff}}$. Nothing about the two-layer structure survives — the composition of two affine maps is just another affine map. This isn't specific to two layers: stack $L$ of them and the weight matrices telescope into one product $W^{(L)}W^{(L-1)}\cdots W^{(1)}$, and the biases telescope into one effective bias, regardless of how large $L$ is. A network of any depth built from purely linear layers can represent exactly the same set of functions as a single linear layer — depth buys you *nothing*. The nonlinearity $\sigma$ is what breaks this collapse: because $\sigma$ doesn't commute with the affine maps around it, composing many layers actually builds something a single layer can't represent. Depth is only meaningful because of the nonlinearity sitting between the linear parts.
+
+## The feedforward network, precisely
+
+An $L$-layer feedforward network is a chain of these affine-then-nonlinear steps. Write $a^{(0)} = x$ for the input. For each layer $l = 1, \dots, L$:
+
+$$
+z^{(l)} = W^{(l)}a^{(l-1)} + b^{(l)}, \qquad a^{(l)} = \sigma\!\left(z^{(l)}\right),
+$$
+
+where $\sigma$ is applied elementwise, $W^{(l)} \in \mathbb{R}^{n_l \times n_{l-1}}$, $b^{(l)} \in \mathbb{R}^{n_l}$, and $n_l$ is the width of layer $l$. The network's output is $\hat y = a^{(L)}$. $z^{(l)}$ (the "pre-activation") and $a^{(l)}$ (the "activation") are both worth naming separately — the derivation below leans on the distinction constantly, because the nonlinearity sits between them.
+
+## Activation functions, and their derivatives
+
+Three choices of $\sigma$ come up constantly, and their derivatives are simple enough that it's worth deriving them once rather than just quoting them.
+
+**Sigmoid.** $\sigma(x) = \dfrac{1}{1+e^{-x}}$, squashing everything into $(0,1)$. Differentiate directly with the chain rule (writing $\sigma(x) = (1+e^{-x})^{-1}$):
+
+$$
+\begin{aligned}
+\sigma'(x) &= -(1+e^{-x})^{-2}\cdot(-e^{-x}) \\
+&= \frac{e^{-x}}{(1+e^{-x})^2} \\
+&= \frac{1}{1+e^{-x}} \cdot \frac{e^{-x}}{1+e^{-x}} \\
+&= \sigma(x)\cdot\frac{(1+e^{-x}) - 1}{1+e^{-x}} \\
+&= \sigma(x)\bigl(1 - \sigma(x)\bigr).
+\end{aligned}
+$$
+
+The tidy consequence is that once you've computed $a = \sigma(x)$ on the forward pass, the derivative is just $a(1-a)$ — no need to re-evaluate an exponential.
+
+Here's $\sigma$ and $\sigma'$ plotted together — notice $\sigma'$ peaks at $0.25$ exactly where $\sigma$ crosses $0.5$, and decays toward zero in both tails, which is the seed of the vanishing-gradient issue mentioned later:
+
+<Chart fn="1 / (1 + Math.exp(-x))" domain={[-8, 8]} xLabel="x" yLabel="σ(x)" />
+
+<Chart fn="(1 / (1 + Math.exp(-x))) * (1 - 1 / (1 + Math.exp(-x)))" domain={[-8, 8]} xLabel="x" yLabel="σ'(x)" />
+
+**Tanh.** $\tanh(x) = \dfrac{e^x - e^{-x}}{e^x + e^{-x}}$. Write $u = e^x - e^{-x}$, $v = e^x + e^{-x}$, so $\tanh x = u/v$, and note $u' = v$ and $v' = u$ (differentiating $u$ and $v$ swaps them). Quotient rule:
+
+$$
+\frac{d}{dx}\left(\frac{u}{v}\right) = \frac{u'v - uv'}{v^2} = \frac{v^2 - u^2}{v^2} = 1 - \left(\frac{u}{v}\right)^2 = 1 - \tanh^2(x).
+$$
+
+**ReLU.** $f(x) = \max(0, x)$. This one needs no product or chain rule at all: for $x>0$ it's the identity, slope $1$; for $x<0$ it's identically $0$, slope $0$. At $x=0$ the function has a corner and technically isn't differentiable; in practice implementations just pick $f'(0) = 0$ (or $1$) and nothing breaks, since landing exactly on $0$ has probability zero during real training. ReLU's derivative never shrinks toward zero the way $\sigma'$ does away from the origin, which is a large part of why it's the default choice in deep networks — but that's a story about vanishing gradients that this post won't chase down.
+
+## Measuring error: loss functions
+
+A loss function turns the network's output $a^{(L)}$ and a target $y$ into a single scalar to minimize. Two show up constantly.
+
+**Mean squared error**, for regression: $L = \frac{1}{2}\lVert a^{(L)} - y \rVert^2 = \frac{1}{2}\sum_i (a_i^{(L)} - y_i)^2$. The $\frac12$ is pure convenience — it cancels the $2$ that falls out of differentiating a square, leaving $\partial L/\partial a_i^{(L)} = a_i^{(L)} - y_i$.
+
+**Cross-entropy with softmax**, for classification, is worth deriving in full because the two combine into something cleaner than either alone. Let $z = z^{(L)}$ be the final layer's raw scores ("logits"), and define the softmax probabilities
+
+$$
+p_i = \frac{e^{z_i}}{\sum_k e^{z_k}}.
+$$
+
+For a one-hot target $y$ (so $\sum_k y_k = 1$), cross-entropy loss is $L = -\sum_i y_i \log p_i$. Substitute the definition of $p_i$ and use $\log(a/b) = \log a - \log b$:
+
+$$
+L = -\sum_i y_i\left(z_i - \log\sum_k e^{z_k}\right) = -\sum_i y_i z_i + \left(\sum_i y_i\right)\log\sum_k e^{z_k} = -\sum_i y_i z_i + \log\sum_k e^{z_k},
+$$
+
+using $\sum_i y_i = 1$ in the last step. Now this is easy to differentiate with respect to a single logit $z_j$ — the first sum contributes $-y_j$, and the log-sum-exp term contributes, by the chain rule, $e^{z_j}/\sum_k e^{z_k} = p_j$:
+
+$$
+\frac{\partial L}{\partial z_j} = -y_j + p_j = p_j - y_j.
+$$
+
+That's a strikingly simple result: the gradient of cross-entropy with respect to the *logits* — passing straight through the softmax — is just "predicted probability minus true label," with no leftover derivative of the softmax or the log anywhere. It's the reason softmax and cross-entropy are essentially always used as a pair rather than composed generically: computed separately, softmax's own Jacobian is a full matrix ($p_i(\delta_{ij} - p_j)$); computed together, it collapses to a vector subtraction.
+
+## Backpropagation: the chain rule, in full
+
+Here is the network from above, kept small — two inputs, one hidden layer of two units, one output — since it's the exact topology used in the worked numerical example later. Solid arrows are the forward pass; dashed arrows sketch the direction the error signal travels backward, which is what the rest of this section derives:
+
+```tikz
+\node[circle, draw, minimum size=0.9cm] (x1) at (0,2.2) {$x_1$};
+\node[circle, draw, minimum size=0.9cm] (x2) at (0,0) {$x_2$};
+\node[circle, draw, minimum size=1.05cm] (h1) at (3.4,2.8) {$a_1^{(1)}$};
+\node[circle, draw, minimum size=1.05cm] (h2) at (3.4,-0.6) {$a_2^{(1)}$};
+\node[circle, draw, minimum size=1.05cm] (y) at (6.8,1.1) {$a^{(2)}$};
+\node (L) at (8.8,1.1) {$L$};
+
+\draw[-{Latex}, thick, blue] (x1) -- (h1);
+\draw[-{Latex}, thick, blue] (x1) -- (h2);
+\draw[-{Latex}, thick, blue] (x2) -- (h1);
+\draw[-{Latex}, thick, blue] (x2) -- (h2);
+\draw[-{Latex}, thick, blue] (h1) -- (y);
+\draw[-{Latex}, thick, blue] (h2) -- (y);
+\draw[-{Latex}, thick, blue] (y) -- (L);
+
+\draw[-{Latex}, thick, red, dashed] (L) to[bend left=25] node[above,red,font=\footnotesize] {$\delta^{(2)}$} (y);
+\draw[-{Latex}, thick, red, dashed] (y) to[bend left=25] node[above,red,font=\footnotesize,sloped] {$\delta_1^{(1)}$} (h1);
+\draw[-{Latex}, thick, red, dashed] (y) to[bend right=25] node[below,red,font=\footnotesize,sloped] {$\delta_2^{(1)}$} (h2);
+```
+
+### The error signal
+
+Define, at every layer $l$, the vector
+
+$$
+\delta^{(l)} \;:=\; \frac{\partial L}{\partial z^{(l)}},
+$$
+
+the sensitivity of the loss to the *pre-activation*. This is the quantity the whole derivation is built around: once you have $\delta^{(l)}$, both the gradients you actually want at layer $l$ and the recursion down to layer $l-1$ fall out in one line each.
+
+**Output layer.** At $l = L$, use the chain rule component-wise. Because $a_i^{(L)} = \sigma(z_i^{(L)})$ depends only on $z_i^{(L)}$ — the activation is elementwise, so there's no cross-talk between components —
+
+$$
+\delta_i^{(L)} = \frac{\partial L}{\partial z_i^{(L)}} = \frac{\partial L}{\partial a_i^{(L)}}\cdot\frac{\partial a_i^{(L)}}{\partial z_i^{(L)}} = \frac{\partial L}{\partial a_i^{(L)}}\,\sigma'\!\left(z_i^{(L)}\right).
+$$
+
+In vector form, $\delta^{(L)} = \nabla_{a^{(L)}}L \odot \sigma'(z^{(L)})$, where $\odot$ is elementwise multiplication. For MSE, $\nabla_{a^{(L)}}L = a^{(L)} - y$, so $\delta^{(L)} = (a^{(L)}-y)\odot\sigma'(z^{(L)})$. (For softmax+cross-entropy the derivation above already produced $\delta^{(L)} = p - y$ directly at the logit level, bypassing this elementwise formula entirely — that's the shortcut noted above, and it's why that pairing is convenient.)
+
+### Gradients of the weights and biases
+
+With $\delta^{(l)}$ in hand at some layer, the parameter gradients at that same layer are immediate. Recall $z_i^{(l)} = \sum_j W_{ij}^{(l)}a_j^{(l-1)} + b_i^{(l)}$. Only $z_i^{(l)}$ depends on the weight $W_{ij}^{(l)}$ (not $z_k^{(l)}$ for $k \ne i$), so
+
+$$
+\frac{\partial L}{\partial W_{ij}^{(l)}} = \frac{\partial L}{\partial z_i^{(l)}}\cdot\frac{\partial z_i^{(l)}}{\partial W_{ij}^{(l)}} = \delta_i^{(l)}\, a_j^{(l-1)}.
+$$
+
+Stacked back into matrix form, that's an outer product:
+
+$$
+\frac{\partial L}{\partial W^{(l)}} = \delta^{(l)}\left(a^{(l-1)}\right)^{\!T}.
+$$
+
+For the bias, $\partial z_i^{(l)}/\partial b_i^{(l)} = 1$, so even more directly,
+
+$$
+\frac{\partial L}{\partial b^{(l)}} = \delta^{(l)}.
+$$
+
+### The recursion
+
+This is the step that actually makes the algorithm work: expressing $\delta^{(l)}$ (needed at every layer) in terms of $\delta^{(l+1)}$ (already computed one step earlier in the backward sweep), so you never have to differentiate all the way back to $L$ from scratch at every layer.
+
+$z_j^{(l)}$ doesn't appear in $L$ directly — it only affects $L$ by feeding into $a_j^{(l)} = \sigma(z_j^{(l)})$, which in turn feeds into *every* unit of the next layer, $z_k^{(l+1)}$ for $k=1,\dots,n_{l+1}$. The multivariate chain rule sums over all of those paths:
+
+$$
+\delta_j^{(l)} = \frac{\partial L}{\partial z_j^{(l)}} = \sum_{k=1}^{n_{l+1}} \frac{\partial L}{\partial z_k^{(l+1)}}\cdot\frac{\partial z_k^{(l+1)}}{\partial z_j^{(l)}} = \sum_k \delta_k^{(l+1)}\cdot\frac{\partial z_k^{(l+1)}}{\partial z_j^{(l)}}.
+$$
+
+Notice this sum only reaches one layer ahead — not all the way to $L$ — precisely because $\delta_k^{(l+1)}$ already *is* $\partial L/\partial z_k^{(l+1)}$, fully accounting for everything downstream. That's the reuse: each $\delta$ is computed once and consumed by the layer behind it, rather than every layer separately re-deriving its dependence on the final loss.
+
+Now expand $z_k^{(l+1)} = \sum_i W_{ki}^{(l+1)}a_i^{(l)} + b_k^{(l+1)} = \sum_i W_{ki}^{(l+1)}\sigma(z_i^{(l)}) + b_k^{(l+1)}$, and differentiate with respect to $z_j^{(l)}$. Every term in the sum over $i$ vanishes except $i=j$:
+
+$$
+\frac{\partial z_k^{(l+1)}}{\partial z_j^{(l)}} = W_{kj}^{(l+1)}\,\sigma'\!\left(z_j^{(l)}\right).
+$$
+
+Substitute back:
+
+$$
+\delta_j^{(l)} = \sum_k \delta_k^{(l+1)}\,W_{kj}^{(l+1)}\,\sigma'\!\left(z_j^{(l)}\right) = \sigma'\!\left(z_j^{(l)}\right)\sum_k W_{kj}^{(l+1)}\delta_k^{(l+1)}.
+$$
+
+The remaining sum, $\sum_k W_{kj}^{(l+1)}\delta_k^{(l+1)}$, is exactly the $j$-th entry of $\left(W^{(l+1)}\right)^{\!T}\delta^{(l+1)}$ — transposing $W^{(l+1)}$ swaps the roles of its two indices, turning "sum over $k$ of row-$k$, column-$j$" into a matrix-vector product. So, in full vector form:
+
+$$
+\delta^{(l)} = \left(\left(W^{(l+1)}\right)^{\!T}\delta^{(l+1)}\right)\odot\sigma'\!\left(z^{(l)}\right).
+$$
+
+This is the whole algorithm. Read it as: take next layer's error signal, push it *backward* through the same weights used to push activations forward (transposed, since you're now going the other direction), then scale each unit's incoming error by how sensitive that unit's own output was to its input. Run a forward pass storing every $z^{(l)}$ and $a^{(l)}$; compute $\delta^{(L)}$ at the top; walk backward computing each $\delta^{(l)}$ from $\delta^{(l+1)}$ and the stored $z^{(l)}$; read off $\partial L/\partial W^{(l)} = \delta^{(l)}(a^{(l-1)})^T$ and $\partial L/\partial b^{(l)} = \delta^{(l)}$ at every layer along the way.
+
+## Why this is fast
+
+Each backward step is one matrix-vector product with $\left(W^{(l+1)}\right)^{\!T}$ — exactly the same shape and cost as the forward matrix-vector product with $W^{(l+1)}$ — plus one cheap elementwise multiply. Summed over all layers, the entire backward pass costs the same order of work as the entire forward pass: roughly two to three times a single forward pass, total, to get *every* gradient in the network. That cost doesn't grow with the number of parameters beyond what the forward pass already costs, because it's built from the same matrix multiplications.
+
+Compare that to finite differences: one forward pass per parameter, $O(P)$ forward passes for $P$ parameters, to get an approximation of the same gradient backprop computes exactly. For a network with a few million weights, that's the difference between one backward pass and a few million forward passes — the difference between minutes and, practically, never finishing. The saving isn't a clever trick bolted onto calculus; it's what you get by refusing to recompute $\partial L/\partial z_j^{(l)}$ from scratch, layer by layer, for every single unit — instead computing it once per unit and handing it to whoever needs it next. That's dynamic programming applied to the chain rule, and it's the entire reason training deep networks is computationally feasible.
+
+## From gradients to training
+
+Once every $\partial L/\partial W^{(l)}$ and $\partial L/\partial b^{(l)}$ is in hand, gradient descent is exactly the one-line update from the opening, applied to every parameter:
+
+$$
+W^{(l)} \leftarrow W^{(l)} - \eta\,\frac{\partial L}{\partial W^{(l)}}, \qquad b^{(l)} \leftarrow b^{(l)} - \eta\,\frac{\partial L}{\partial b^{(l)}},
+$$
+
+usually with $L$ averaged (and its gradient averaged along with it) over a minibatch of examples rather than one at a time. Plain gradient descent, run this way, is not trouble-free. The learning rate $\eta$ has no universally good value: too large and updates overshoot, sometimes diverging outright; too small and training crawls. The loss surface of a network with even one hidden layer is not convex, so the gradient at a given point says nothing about the global shape — it can point down a narrow ravine where the surface curves sharply in one direction and barely at all in another, which makes a single fixed step size wrong in every direction at once. Momentum (accumulating a running average of past gradients so the update carries velocity through such ravines and damps oscillation) and Adam (maintaining running estimates of both the gradient and its square to rescale each parameter's step individually) are the standard responses to exactly this problem. Deriving Adam's update rule in full is outside the scope of this post — the honest summary is that it's a per-parameter adaptive step size built from exponential moving averages of the gradient and its square, motivated by the same ravine problem just described.
+
+## A worked example, by hand
+
+Take the 2-2-1 network from the diagram, with sigmoid activations at both layers and MSE loss, and fix concrete numbers:
+
+$$
+x = \begin{bmatrix}1.0\\0.5\end{bmatrix},\quad y = 1.0,\quad
+W^{(1)} = \begin{bmatrix}0.3 & -0.1\\0.2 & 0.4\end{bmatrix},\quad
+b^{(1)} = \begin{bmatrix}0.1\\-0.2\end{bmatrix},\quad
+W^{(2)} = \begin{bmatrix}0.5 & -0.3\end{bmatrix},\quad b^{(2)} = 0.2.
+$$
+
+**Forward pass.**
+
+$$
+z^{(1)} = W^{(1)}x + b^{(1)} = \begin{bmatrix}0.3(1.0) - 0.1(0.5) + 0.1\\0.2(1.0)+0.4(0.5)-0.2\end{bmatrix} = \begin{bmatrix}0.35\\0.20\end{bmatrix}
+$$
+
+$$
+a^{(1)} = \sigma(z^{(1)}) = \begin{bmatrix}0.58662\\0.54983\end{bmatrix}
+$$
+
+$$
+z^{(2)} = W^{(2)}a^{(1)} + b^{(2)} = 0.5(0.58662) - 0.3(0.54983) + 0.2 = 0.32836
+$$
+
+$$
+a^{(2)} = \sigma(z^{(2)}) = 0.58136, \qquad L = \tfrac{1}{2}(a^{(2)}-y)^2 = \tfrac12(-0.41864)^2 = 0.08763
+$$
+
+**Backward pass.** Output error signal:
+
+$$
+\delta^{(2)} = (a^{(2)}-y)\,\sigma'(z^{(2)}) = (-0.41864)\bigl(0.58136(1-0.58136)\bigr) = (-0.41864)(0.24337) = -0.10189
+$$
+
+Output-layer gradients:
+
+$$
+\frac{\partial L}{\partial W^{(2)}} = \delta^{(2)}\left(a^{(1)}\right)^{\!T} = -0.10189\begin{bmatrix}0.58662 & 0.54983\end{bmatrix} = \begin{bmatrix}-0.05977 & -0.05602\end{bmatrix}, \qquad \frac{\partial L}{\partial b^{(2)}} = -0.10189
+$$
+
+Backward recursion into the hidden layer:
+
+$$
+\left(W^{(2)}\right)^{\!T}\delta^{(2)} = \begin{bmatrix}0.5\\-0.3\end{bmatrix}(-0.10189) = \begin{bmatrix}-0.05094\\0.03057\end{bmatrix}
+$$
+
+$$
+\delta^{(1)} = \begin{bmatrix}-0.05094\\0.03057\end{bmatrix}\odot\begin{bmatrix}0.58662(1-0.58662)\\0.54983(1-0.54983)\end{bmatrix} = \begin{bmatrix}-0.05094(0.24248)\\0.03057(0.24752)\end{bmatrix} = \begin{bmatrix}-0.01235\\0.00757\end{bmatrix}
+$$
+
+Hidden-layer gradients:
+
+$$
+\frac{\partial L}{\partial W^{(1)}} = \delta^{(1)}x^T = \begin{bmatrix}-0.01235(1.0) & -0.01235(0.5)\\0.00757(1.0) & 0.00757(0.5)\end{bmatrix} = \begin{bmatrix}-0.01235 & -0.00618\\0.00757 & 0.00378\end{bmatrix}, \qquad \frac{\partial L}{\partial b^{(1)}} = \begin{bmatrix}-0.01235\\0.00757\end{bmatrix}
+$$
+
+That's a complete gradient — four numbers for $W^{(1)}$, two for $b^{(1)}$, two for $W^{(2)}$, one for $b^{(2)}$ — obtained from one forward pass and one backward pass, each involving only two small matrix-vector products. Running plain gradient descent with $\eta = 0.5$ from this starting point, recomputing this exact forward/backward pair at each step, drives the loss down steadily:
+
+<Chart data={[{x:0,y:0.08763},{x:1,y:0.079127},{x:2,y:0.071676},{x:3,y:0.065151},{x:4,y:0.059433},{x:5,y:0.054413},{x:6,y:0.049997},{x:7,y:0.046101},{x:8,y:0.042652},{x:9,y:0.03959},{x:10,y:0.03686},{x:11,y:0.03442},{x:12,y:0.03223},{x:13,y:0.030258},{x:14,y:0.028476},{x:15,y:0.026862},{x:16,y:0.025394},{x:17,y:0.024056},{x:18,y:0.022833},{x:19,y:0.021711},{x:20,y:0.02068},{x:21,y:0.01973},{x:22,y:0.018852},{x:23,y:0.01804},{x:24,y:0.017286},{x:25,y:0.016585},{x:26,y:0.015932},{x:27,y:0.015322},{x:28,y:0.014752},{x:29,y:0.014219}]} marks={[{type:'line', x:'x', y:'y'}, {type:'dot', x:'x', y:'y'}]} xLabel="gradient descent step" yLabel="loss" />
+
+Thirty steps of gradient descent on a single example, using nothing but the formulas derived above.
+
+## Code
+
+A direct translation of the forward pass and the three backward-pass formulas — $\delta^{(L)}$, the recursion for $\delta^{(l)}$, and the outer-product gradients — for a generic sigmoid MLP:
+
+```python
+import numpy as np
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+class MLP:
+    def __init__(self, sizes):
+        # sizes = [n_0, n_1, ..., n_L], e.g. [2, 2, 1]
+        self.W = [np.random.randn(sizes[l], sizes[l-1]) * 0.5 for l in range(1, len(sizes))]
+        self.b = [np.zeros(sizes[l]) for l in range(1, len(sizes))]
+
+    def forward(self, x):
+        a = x
+        zs, activations = [], [a]
+        for W, b in zip(self.W, self.b):
+            z = W @ a + b
+            a = sigmoid(z)
+            zs.append(z)
+            activations.append(a)
+        return zs, activations
+
+    def backward(self, x, y):
+        zs, activations = self.forward(x)
+        a_out = activations[-1]
+
+        # output layer error signal: dL/da * sigmoid'(z)
+        delta = (a_out - y) * (a_out * (1 - a_out))
+
+        dW = [None] * len(self.W)
+        db = [None] * len(self.b)
+        dW[-1] = np.outer(delta, activations[-2])
+        db[-1] = delta
+
+        # walk backward through the remaining layers
+        for l in range(len(self.W) - 2, -1, -1):
+            a_l = activations[l + 1]                      # a^(l), i.e. sigma(z^(l))
+            sigma_prime = a_l * (1 - a_l)
+            delta = (self.W[l + 1].T @ delta) * sigma_prime
+            dW[l] = np.outer(delta, activations[l])
+            db[l] = delta
+
+        return dW, db
+
+    def step(self, x, y, lr):
+        dW, db = self.backward(x, y)
+        for l in range(len(self.W)):
+            self.W[l] -= lr * dW[l]
+            self.b[l] -= lr * db[l]
+```
+
+`forward` stores every `z` and `a`, exactly the quantities the backward pass needs — that storage is the entire "memoization" that makes reuse possible. `backward` starts from the output error signal, then applies the recursion one layer at a time, reading off `dW`/`db` at each layer before moving further back. There's no autodiff machinery here; it's the formulas from the derivation above, typed in directly.
+
+This post covers a plain feedforward network trained by the classic backprop derivation — it deliberately doesn't get into why very deep networks suffer vanishing or exploding gradients (a direct consequence of multiplying many $\sigma'$ terms together in the recursion above, each less than $1$ for sigmoid/tanh), how batch normalization addresses that, or how Adam's update rule is actually derived. Those are real extensions of exactly the mechanism derived here, not different mechanisms — but they're each their own topic.
