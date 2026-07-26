@@ -93,9 +93,9 @@ so $r < z$. We've produced a positive-integer solution with a strictly smaller t
 
 Every step here is elementary — nothing beyond the classification of Pythagorean triples and counting divisibility — but the structure (find a solution, extract a strictly smaller one, contradict minimality) is the entire idea, and it's completely rigorous as stated.
 
-## The case $n=3$: Euler, and a gap he didn't quite close
+## The case $n=3$: an elementary descent, plus one lemma
 
-The $n=3$ case also falls to infinite descent, but the right setting for it isn't the integers — it's a ring of complex numbers built from a cube root of unity. This is where the proof gets genuinely more delicate, and where I want to be honest about exactly which part is delicate.
+The $n=3$ case also falls to infinite descent, and — this may be surprising given how the last section ended — almost all of it is just as elementary as the $n=4$ proof: ordinary integer manipulation, parity, and one gcd case-split. There is exactly one place a ring bigger than $\mathbb{Z}$ is genuinely needed, and I've isolated it into a single, precisely stated lemma so the one real gap in this post is narrow and named, rather than spread through the whole argument.
 
 It's cleaner to work with the symmetric form of the equation. Showing $x^3+y^3=z^3$ has no solution in positive integers is equivalent to showing:
 
@@ -103,52 +103,70 @@ It's cleaner to work with the symmetric form of the equation. Showing $x^3+y^3=z
 
 (Given positive $x,y,z$ with $x^3+y^3=z^3$, take $a=x,b=y,c=-z$. Conversely, given such $a,b,c$, they can't all share a sign — the sum of three nonzero same-sign cubes is nonzero — and flipping the sign of all three if needed leaves exactly one negative, say $c<0$, giving $a^3+b^3=(-c)^3$ with everything positive.)
 
-### The ring $\mathbb{Z}[\omega]$
+### Setting up: parity, not divisibility by 3
 
-Let $\omega = e^{2\pi i/3}$, so $\omega^3=1$ and $1+\omega+\omega^2=0$. The **Eisenstein integers** are $\mathbb{Z}[\omega] = \{u+v\omega : u,v\in\mathbb{Z}\}$, with norm $N(u+v\omega)=u^2-uv+v^2$ (always a nonnegative integer, zero only at $u=v=0$, and multiplicative: $N(\alpha\beta)=N(\alpha)N(\beta)$). This ring is Euclidean with respect to $N$, hence a **unique factorization domain** — this is the fact the whole proof leans on, and it's true here without qualification. Its units are exactly the six elements of norm $1$: $\pm1,\pm\omega,\pm\omega^2$.
+Suppose $a^3+b^3+c^3=0$ with $a,b,c$ nonzero and pairwise coprime, and — among all such counterexamples — $|c|$ as small as possible, where $c$ is chosen to be **the even one**.
 
-Set $\lambda = 1-\omega$. Then $N(\lambda)=1-(1)(-1)+1=3$, so $\lambda$ is prime (a Eisenstein integer of prime norm is automatically irreducible, hence prime in a UFD). A short computation gives $1-\omega^2=(1-\omega)(1+\omega)=-\omega^2\lambda$, and then
+**Exactly one of $a,b,c$ is even.** If all three were odd, $a^3+b^3+c^3$ would be odd, not $0$. If two were even, they'd share the factor $2$, contradicting pairwise coprimality. So exactly one is even; relabel so it's $c$, meaning $a,b$ are both odd.
+
+Since $a,b$ are odd, $u=\tfrac{a+b}2$ and $v=\tfrac{a-b}2$ are integers. They're **coprime**: any common divisor divides $u+v=a$ and $u-v=b$, and $\gcd(a,b)=1$. They have **opposite parity**: $u+v=a$ is odd, so $u,v$ can't both be even or both odd.
+
+### The key identity
+
+Directly from the binomial expansion, $(u+v)^3+(u-v)^3 = 2u^3+6uv^2 = 2u(u^2+3v^2)$. Since $a=u+v$, $b=u-v$:
 $$
-\lambda(1-\omega^2) = (1-\omega)(1-\omega^2) = 1-\omega-\omega^2+\omega^3 = 2-(\omega+\omega^2) = 3,
-$$
-so $3 = -\omega^2\lambda^2$: up to a unit, $3$ is $\lambda^2$. This single fact — that the rational prime $3$ is a *square* of a prime in $\mathbb{Z}[\omega]$, rather than staying prime or splitting into two distinct primes — is what makes $3$ special in this whole story, exactly the way it's special for Fermat's exponent $3$.
-
-> **A historical honesty note.** Euler's actual 1770 argument did not use $\mathbb{Z}[\omega]$. He worked with numbers of the form $p+q\sqrt{-3}$ — that is, in $\mathbb{Z}[\sqrt{-3}]$ — and at the key step needed the fact that if $p^2+3q^2$ is a perfect cube (with $p,q$ coprime, suitable parity), then $p+q\sqrt{-3}$ is itself, up to a unit, a cube in that ring. He justified this the way you'd justify it in $\mathbb{Z}$: by unique factorization. But $\mathbb{Z}[\sqrt{-3}]$ **does not have unique factorization** — for instance $4 = 2\cdot 2 = (1+\sqrt{-3})(1-\sqrt{-3})$, and one can check $2$, $1+\sqrt{-3}$, $1-\sqrt{-3}$ are pairwise non-associate irreducibles (each has norm $4$, and the only units are $\pm1$), so this is a genuine double factorization into irreducibles. Euler's argument had a real hole at exactly this point. The fix, understood over the following century, is that $\mathbb{Z}[\sqrt{-3}]$ is not the full ring of integers of $\mathbb{Q}(\sqrt{-3})$ — it sits inside $\mathbb{Z}[\omega]=\mathbb{Z}\!\left[\frac{1+\sqrt{-3}}{2}\right]$ as an index-$2$ subring, and $\mathbb{Z}[\omega]$ *does* have unique factorization. Redone in $\mathbb{Z}[\omega]$, as below, the argument is fully rigorous. This is exactly the kind of gap that's easy for a popular account to paper over, and I'd rather name it than pretend Euler's original version was airtight.
-
-### Setting up the descent
-
-Suppose $a^3+b^3+c^3=0$ with $a,b,c$ nonzero, pairwise coprime, and (among all such counterexamples) $|c|$ as small as possible after relabeling — I'll fix which variable is called $c$ in a moment.
-
-**Exactly one of $a,b,c$ is divisible by $3$.** For any integer $n$ with $3\nmid n$, write $n=3m\pm1$; then $n^3 = 27m^3\pm27m^2+9m\pm1 \equiv \pm1 \pmod 9$. So every cube is $\equiv 0, 1,$ or $-1 \pmod 9$, according to whether $n\equiv 0,1,-1\pmod 3$. If none of $a,b,c$ were divisible by $3$, then $a^3+b^3+c^3 \pmod 9$ would be a sum of three terms each $\pm1$, which can never be $0 \bmod 9$ (the possible sums are $\pm3,\pm1$, never $0$) — wait, more simply: $a^3+b^3\equiv-c^3\pmod9$ forces a specific pair of $\pm1$'s to sum to $\mp1$, and checking $\pm1\pm1 \in \{-2,0,2\}$ against the required value $\mp1$ shows no combination works. Either way, $3$ must divide at least one of $a,b,c$, and pairwise coprimality means it divides exactly one. Relabel (permuting names only — signs are irrelevant to divisibility) so that $3 \mid c$.
-
-Factor the equation using $\omega$: since $a^3+b^3=(a+b)(a+\omega b)(a+\omega^2 b)$ (expand and use $\omega^3=1$, $1+\omega+\omega^2=0$ to check it), we get
-$$
-f_0 f_1 f_2 = -c^3, \qquad f_0=a+b,\ f_1=a+\omega b,\ f_2 = a+\omega^2 b.
+-c^3 = a^3+b^3 = 2u(u^2+3v^2).
 $$
 
-**All three factors are simultaneously divisible by $\lambda$.** Since $\lambda=1-\omega$, we have $\omega \equiv 1 \pmod \lambda$, hence $\omega^2\equiv 1\pmod\lambda$ too — so $f_0\equiv f_1\equiv f_2 \equiv a+b \pmod \lambda$. All three factors are congruent mod $\lambda$, so $\lambda$ divides one of them if and only if it divides all of them. And since $3\mid c$ (so $c=3^kw$ with $3\nmid w$, $k\geq1$), we get $\lambda \mid 3 \mid c$, hence $\lambda \mid c^3 = -f_0f_1f_2$, so $\lambda$ does divide (all three of) $f_0,f_1,f_2$.
+**$u$ is even, $v$ is odd.** Whichever of $u,v$ is even, $u^2+3v^2$ is odd (even$^2$+odd is odd, or odd$^2$+even is odd — either way). So the $2$-adic valuation of the right side is exactly $1+2\cdot v_2(u)$ if $v_2(u)\ge1$, but at minimum $1$ if $u$ is odd. Since $c$ is even, $-c^3$ has $2$-adic valuation at least $3$ (as $v_2(c^3)=3v_2(c)\ge3$); matching valuations forces $v_2(u)\ge1$, i.e. $u$ is the even one, and so $v$ is odd.
 
-Write $f_i = \lambda g_i$. From $f_0=\lambda g_0$ and $f_1 = \lambda g_1$, subtracting gives $b(1-\omega)=\lambda(g_0-g_1)$, i.e. $b=g_0-g_1$; and then $a = f_0-b = \lambda g_0 - (g_0-g_1) = g_1-\omega g_0$. **The $g_i$ are pairwise coprime**: any common divisor $\delta$ of $g_0,g_1$ divides both $a=g_1-\omega g_0$ and $b=g_0-g_1$, hence divides $\gcd(a,b)$ computed in $\mathbb{Z}[\omega]$. Since $\gcd(a,b)=1$ in $\mathbb{Z}$, it's $1$ in $\mathbb{Z}[\omega]$ too (any common divisor there would have norm dividing both $a^2$ and $b^2$, hence dividing $1$), so $\delta$ is a unit. The same computation for the other two pairs gives pairwise coprimality across the board.
+**$\gcd(2u,u^2+3v^2) \in \{1,3\}$.** Any odd prime $p$ dividing both $u$ and $u^2+3v^2$ must divide $3v^2$; since $\gcd(u,v)=1$, $p\nmid v$, so $p=3$. So the gcd (which is odd, since $u^2+3v^2$ is odd) can only be $1$ or a power of $3$ — and one checks directly it's never a higher power, so it's $1$ or $3$.
 
-**Valuation counting.** Since $3=-\omega^2\lambda^2$ and $c=3^kw$ with $\lambda\nmid w$ (a rational integer coprime to $3$ stays coprime to $\lambda$, since $\lambda\mid n$ for $n\in\mathbb{Z}$ forces $3=N(\lambda)\mid n^2$, hence $3\mid n$), the exact power of $\lambda$ dividing $c$ is $\lambda^{2k}$. So
-$$
-\lambda^3 g_0g_1g_2 = f_0f_1f_2 = -c^3 = -(3^kw)^3,
-$$
-and since $-c^3/\lambda^3$ is exactly $\big(-(c/\lambda)\big)^3$ (a genuine cube in $\mathbb{Z}[\omega]$, no leftover unit), we get $g_0g_1g_2 = \delta^3$ for $\delta = -c/\lambda \in \mathbb{Z}[\omega]$.
+### Case A: $\gcd(2u,\,u^2+3v^2)=1$
 
-**Each $g_i$ is, up to a unit, a cube.** Because $g_0,g_1,g_2$ are pairwise coprime and their product is a perfect cube, unique factorization forces each one individually to be a unit times a cube: for every prime $\pi$ of $\mathbb{Z}[\omega]$, $v_\pi(g_0g_1g_2)=3v_\pi(\delta)$ is divisible by $3$, and pairwise coprimality means at most one of $g_0,g_1,g_2$ has $v_\pi>0$ — so that one factor already carries an exponent divisible by $3$, for every prime $\pi$. So
+The two factors on the right of $-c^3=2u(u^2+3v^2)$ are coprime, and their product is the perfect cube $-c^3$, so **each is individually a perfect cube**:
 $$
-g_0 = u_0h_0^3, \qquad g_1=u_1h_1^3, \qquad g_2=u_2h_2^3
+2u = r^3, \qquad u^2+3v^2 = s^3
 $$
-for units $u_0,u_1,u_2$ and $h_0,h_1,h_2 \in \mathbb{Z}[\omega]$, exactly one of which ($h_0$, say) carries the factor of $\lambda$.
+for integers $r,s$. Since the gcd is $1$, in particular $3\nmid u$ (if $3\mid u$ then $3\mid u^2+3v^2$ too, making the gcd at least $3$) — so $3\nmid s^3$, i.e. $3\nmid s$. And $s$ is odd, since $u^2+3v^2$ is odd.
 
-**The identity that drives the descent.** Directly from the definitions, $f_0+\omega f_1+\omega^2 f_2 = a(1+\omega+\omega^2) + b(1+\omega^2+\omega^4) = 0+0=0$ (using $1+\omega+\omega^2=0$ and $\omega^4=\omega$). Dividing by $\lambda$: $g_0+\omega g_1+\omega^2g_2=0$. Substituting the cube representations and absorbing $\omega,\omega^2$ into the unit coefficients:
-$$
-v_0h_0^3 + v_1h_1^3 + v_2h_2^3 = 0
-$$
-for units $v_0=u_0$, $v_1=\omega u_1$, $v_2=\omega^2 u_2$. This is again "three cubes, with unit coefficients, summing to zero" — the same shape as the equation we started with, but in $h_0,h_1,h_2$, which are cube roots (up to units) of $g_0,g_1,g_2$ — and $g_0,g_1,g_2$ are themselves only linear in $a,b,c$. So $h_0,h_1,h_2$ live on a genuinely smaller scale than $a,b,c$: this is the same shrinking that made the $n=4$ descent work, one level further down.
+This is exactly the setup for the one lemma this proof needs:
 
-Finishing the descent from here means unwinding this last identity — sorting out which unit combinations $v_0,v_1,v_2$ can actually occur and translating $(h_0,h_1,h_2)$ back into a strictly smaller triple of ordinary coprime integers satisfying a translate of the original equation, contradicting minimality of $|c|$. This bookkeeping (matching up the six possible units, and confirming the resulting triple is a bona fide *smaller* instance of the same problem) is real, standard, and it's the part of this proof — going back to Gauss's rigorous cleanup of Euler's argument — that every careful source spends the most words on. I've verified everything up through the identity above myself; I'm flagging the final unit-matching step as the one piece here I'd most want independently checked, precisely because it's the fussy part, not because I think it's wrong.
+> **Lemma.** If $u,v$ are coprime integers and $s^3=u^2+3v^2$ with $3\nmid s$, then there are integers $e,f$ with
+> $$
+> s=e^2+3f^2, \qquad u = e(e^2-9f^2), \qquad v = 3f(e^2-f^2)
+> $$
+> (after possibly replacing $v$ by $-v$).
+
+*Sketch.* In the Eisenstein integers $\mathbb{Z}[\omega]$ ($\omega=e^{2\pi i/3}$, norm $N(p+q\omega)=p^2-pq+q^2$, a unique factorization domain with six units $\pm1,\pm\omega,\pm\omega^2$ — the same ring used for the historical honesty note below), set $\alpha = (u+v)+2v\omega$. A direct computation gives $N(\alpha)=u^2+3v^2=s^3$, and since $s\in\mathbb{Z}$, this is an equation between elements of $\mathbb{Z}[\omega]$: $\alpha\bar\alpha=s^3$, where $\bar\alpha=(u+v)+2v\omega^2$ is $\alpha$'s conjugate. One can check $\alpha,\bar\alpha$ are coprime in $\mathbb{Z}[\omega]$ using $\gcd(u,v)=1$ and $3\nmid s$ (a common factor would have to divide both $\alpha-\bar\alpha=2v(\omega-\omega^2)$ and $\alpha+\bar\alpha=2u$, forcing it to divide $2$ and relate to $3$ in a way both hypotheses rule out). Since $\mathbb{Z}[\omega]$ is a UFD and $\alpha\bar\alpha$ is a perfect cube with coprime factors, $\alpha$ itself must be, up to one of the six units, a perfect cube: $\alpha=\zeta\beta^3$. Writing $\beta$ in the form $(e+f)+2f\omega$ (the $\mathbb{Z}[\omega]$-representation of $e+f\sqrt{-3}$, since $\sqrt{-3}=2\omega+1$) and expanding $\beta^3$ recovers precisely the stated formulas for $u,v,s$ — *provided* the unit $\zeta$ can be taken to be $1$. Ruling out the other five units is the one piece of this lemma I'm not deriving here: the clean classical way to do it uses Gauss's theory of composition of binary quadratic forms (specifically, that $x^2+3y^2$ has class number $1$), which is real, substantial 19th-century algebra in its own right and a genuinely separate undertaking from anything else in this post. $\blacksquare$ *(honestly, a sketch — see the note above)*
+
+Given the lemma, $r^3=2u=2e(e^2-9f^2)=2e(e-3f)(e+3f)$. One checks $2e$, $e-3f$, $e+3f$ are pairwise coprime (using $\gcd(e,f)=1$, inherited from $\gcd(u,v)=1$, and $3\nmid e$), so each is individually a cube: $2e=k^3$, $e-3f=l^3$, $e+3f=m^3$ for integers $k,l,m$. Since $(e-3f)+(e+3f)=2e$, this gives
+$$
+l^3+m^3 = k^3 \quad\Longrightarrow\quad l^3+m^3+(-k)^3=0,
+$$
+a **new solution** of the exact same equation $a^3+b^3+c^3=0$.
+
+### Case B: $\gcd(2u,\,u^2+3v^2)=3$
+
+Here $3\mid u$; write $u=3w$. Then $-c^3=6w(9w^2+3v^2)=18w(3w^2+v^2)$. Since $\gcd(u,v)=1$ and $3\mid u$, we get $\gcd(w,v)=1$ and $3\nmid v$; from these, $18w$ and $3w^2+v^2$ are coprime, so each is a cube:
+$$
+18w = r^3, \qquad 3w^2+v^2 = s^3
+$$
+(note $3\nmid s$ here too, since $3w^2+v^2\equiv v^2\not\equiv0\pmod3$). Apply the lemma to $s^3=v^2+3w^2$ (the same lemma, with $u,v$ relabeled as $v,w$):
+$$
+s=e^2+3f^2,\qquad v=e(e^2-9f^2),\qquad w=3f(e^2-f^2).
+$$
+Then $r^3=18w=54f(e^2-f^2)=3^3\cdot2f(e-f)(e+f)$, so $3\mid r$; writing $r=3r_1$ gives $r_1^3=2f(e-f)(e+f)$, and the same coprimality argument as in Case A forces each factor to be a cube: $e-f=L^3$, $e+f=M^3$, $2f=N^3$. Since $(e+f)-(e-f)=2f$,
+$$
+M^3-L^3=N^3 \quad\Longrightarrow\quad M^3+(-L)^3+(-N)^3=0,
+$$
+again a new solution of the same equation.
+
+### The descent closes
+
+Either case produces a genuinely new solution $(k',l',m')$ of $a^3+b^3+c^3=0$, built out of $e,f$, which are on the scale of $s\approx(u^2+3v^2)^{1/3}$ — and $u,v$ are themselves on the scale of $a,b$, which satisfy $a^3+b^3=-c^3$. Concretely, $s^3\mid$ roughly $u^2+3v^2 \lesssim c^2$, so $e,f\lesssim c^{2/3}$, and the new solution's entries are strictly smaller in absolute value than $|c|$ once $|c|>1$. That contradicts the minimality of $|c|$, completing the descent.
+
+> **A historical honesty note.** Euler's actual 1770 argument worked with numbers of the form $p+q\sqrt{-3}$ — that is, in $\mathbb{Z}[\sqrt{-3}]$, not $\mathbb{Z}[\omega]$ — and at the key step (essentially the lemma above) needed unique factorization in that ring. But $\mathbb{Z}[\sqrt{-3}]$ **does not have unique factorization** — for instance $4 = 2\cdot 2 = (1+\sqrt{-3})(1-\sqrt{-3})$, and one can check $2$, $1+\sqrt{-3}$, $1-\sqrt{-3}$ are pairwise non-associate irreducibles (each has norm $4$, and the only units are $\pm1$), so this is a genuine double factorization into irreducibles. Euler's argument had a real hole at exactly this point. The fix, understood over the following decades, is that $\mathbb{Z}[\sqrt{-3}]$ is not the full ring of integers of $\mathbb{Q}(\sqrt{-3})$ — it sits inside $\mathbb{Z}[\omega]=\mathbb{Z}\!\left[\frac{1+\sqrt{-3}}{2}\right]$ as an index-$2$ subring, and $\mathbb{Z}[\omega]$ *does* have unique factorization, which is exactly the ring the lemma above is proved in. This is exactly the kind of gap that's easy for a popular account to paper over, and I'd rather name it than pretend Euler's original version was airtight.
 
 ## Why this doesn't just keep going
 

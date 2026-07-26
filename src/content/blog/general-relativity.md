@@ -84,16 +84,159 @@ $$
 \frac{d^2x^\mu}{d\tau^2} + \Gamma^\mu_{\alpha\beta}\frac{dx^\alpha}{d\tau}\frac{dx^\beta}{d\tau} = 0.
 $$
 
-I'll be upfront about scope here: the $\Gamma^\mu_{\alpha\beta}$ (Christoffel
-symbols) are built from derivatives of the metric $g_{\mu\nu}$, and deriving
-their general formula and the geodesic equation itself from a variational
-principle is real tensor calculus that I'm not carrying out in full here.
-Conceptually, though, what they encode is simple to state: in curved
-coordinates (or on a genuinely curved manifold), the coordinate basis vectors
-themselves twist from point to point, and $\Gamma^\mu_{\alpha\beta}$ is exactly
-the correction term needed to account for that twisting when you differentiate
-a vector along a path. "Follow a geodesic" is the precise, curved-spacetime
-replacement for "travel in a straight line at constant velocity."
+Rather than just stating this, it's worth actually deriving it, because the
+derivation is genuinely tractable — it's ordinary calculus of variations, not
+differential geometry — and it tells you exactly what $\Gamma^\mu_{\alpha\beta}$
+*is* rather than just what it's for.
+
+**Deriving the geodesic equation.** "Extremize proper time" is easiest to work
+with in the equivalent form of extremizing the "energy" functional
+
+$$
+S[x] = \int L\,d\tau, \qquad L = g_{\mu\nu}(x)\,\dot x^\mu \dot x^\nu,
+\qquad \dot x^\mu \equiv \frac{dx^\mu}{d\tau},
+$$
+
+along a curve $x^\mu(\tau)$ with fixed endpoints (extremizing this $L$ gives
+the same paths as extremizing $\int\sqrt{-g_{\mu\nu}\dot x^\mu\dot x^\nu}\,d\tau$
+directly, without the awkwardness of a square root, provided $\tau$ is an
+*affine* parameter along the path — which proper time is). This is exactly a
+Lagrangian mechanics problem, so the Euler–Lagrange equation applies:
+
+$$
+\frac{d}{d\tau}\frac{\partial L}{\partial \dot x^\alpha} - \frac{\partial L}{\partial x^\alpha} = 0.
+$$
+
+Compute each piece. Since $L=g_{\mu\nu}\dot x^\mu\dot x^\nu$,
+
+$$
+\frac{\partial L}{\partial \dot x^\alpha} = 2g_{\alpha\nu}\dot x^\nu
+\quad\Longrightarrow\quad
+\frac{d}{d\tau}\left(2g_{\alpha\nu}\dot x^\nu\right)
+= 2(\partial_\beta g_{\alpha\nu})\dot x^\beta\dot x^\nu + 2g_{\alpha\nu}\ddot x^\nu,
+$$
+
+using the chain rule to expand $\frac{d}{d\tau}g_{\alpha\nu}(x(\tau)) = (\partial_\beta g_{\alpha\nu})\dot x^\beta$. And directly,
+
+$$
+\frac{\partial L}{\partial x^\alpha} = (\partial_\alpha g_{\mu\nu})\dot x^\mu\dot x^\nu.
+$$
+
+Substituting into Euler–Lagrange:
+
+$$
+2g_{\alpha\nu}\ddot x^\nu + 2(\partial_\beta g_{\alpha\nu})\dot x^\beta\dot x^\nu - (\partial_\alpha g_{\beta\nu})\dot x^\beta\dot x^\nu = 0.
+$$
+
+The middle term is being contracted with $\dot x^\beta\dot x^\nu$, which is
+symmetric in $\beta,\nu$, so only the symmetric part of $\partial_\beta
+g_{\alpha\nu}$ in those two indices actually contributes; that lets us
+symmetrize it for free as $\tfrac12\big[(\partial_\beta g_{\alpha\nu})+(\partial_\nu g_{\alpha\beta})\big]$
+without changing the equation. So:
+
+$$
+2g_{\alpha\nu}\ddot x^\nu + \big(\partial_\beta g_{\alpha\nu}+\partial_\nu g_{\alpha\beta}-\partial_\alpha g_{\beta\nu}\big)\dot x^\beta\dot x^\nu = 0.
+$$
+
+Finally, multiply through by the inverse metric $g^{\mu\alpha}$ (defined by
+$g^{\mu\alpha}g_{\alpha\nu}=\delta^\mu_\nu$) and divide by $2$:
+
+$$
+\ddot x^\mu + \underbrace{\tfrac12 g^{\mu\alpha}\big(\partial_\beta g_{\alpha\nu}+\partial_\nu g_{\alpha\beta}-\partial_\alpha g_{\beta\nu}\big)}_{\displaystyle \Gamma^\mu_{\beta\nu}}\dot x^\beta \dot x^\nu = 0.
+$$
+
+That's the geodesic equation, and the derivation *hands you* the Christoffel
+symbol formula
+
+$$
+\Gamma^\mu_{\alpha\beta} = \tfrac12 g^{\mu\nu}\big(\partial_\alpha g_{\nu\beta}+\partial_\beta g_{\nu\alpha}-\partial_\nu g_{\alpha\beta}\big)
+$$
+
+as a byproduct, rather than as a separately-asserted definition. Every piece
+of it is now visibly just "derivatives of the metric," built entirely from
+extremizing a genuinely simple functional. This is the one piece of real
+tensor calculus in this post carried all the way through — everything past
+this point (the Riemann tensor, the Ricci tensor, the field equations
+themselves) builds on the same $\Gamma^\mu_{\alpha\beta}$ but takes further
+derivatives and contractions that I'm not deriving here.
+
+## Recovering Newton, as a limit
+
+Before getting to what determines curvature, it's worth checking that the
+geodesic equation just derived actually reduces to something familiar when
+gravity is weak — because if it didn't, none of this would deserve to be
+called a generalization of Newtonian gravity at all.
+
+Take a **weak, static field**: write the metric as $g_{\mu\nu} = \eta_{\mu\nu} + h_{\mu\nu}$,
+where $\eta_{\mu\nu} = \mathrm{diag}(-1,1,1,1)$ is the flat Minkowski metric
+and $|h_{\mu\nu}|\ll1$ is a small perturbation with no time dependence
+($\partial_0 h_{\mu\nu}=0$). Take a **slowly moving particle**: its spatial
+velocity is small compared to $c$, so along its worldline $|dx^i/d\tau| \ll
+|dx^0/d\tau|$, meaning the $\dot x^0\dot x^0$ term dominates every other term
+in the geodesic equation's sum over $\beta,\nu$.
+
+Keeping only that dominant term, the spatial components of the geodesic
+equation reduce to
+
+$$
+\ddot x^i + \Gamma^i_{00}(\dot x^0)^2 \approx 0.
+$$
+
+Now evaluate $\Gamma^i_{00}$ from the formula just derived. Because the field
+is static, $\partial_0 g_{\alpha 0}=0$ for every $\alpha$, which kills two of
+the three terms in $\Gamma^i_{00}=\tfrac12g^{i\nu}(\partial_0g_{\nu0}+\partial_0g_{\nu0}-\partial_\nu g_{00})$,
+leaving just
+
+$$
+\Gamma^i_{00} = -\tfrac12 g^{i\nu}\partial_\nu g_{00} \approx -\tfrac12\partial_i g_{00}
+$$
+
+(to leading order in $h$, the inverse metric is just $g^{i\nu}\approx\eta^{i\nu}=\delta^{i\nu}$,
+and $\partial_\nu g_{00}$ is only nonzero for spatial $\nu=i$ since the field
+is static). Substituting back and converting $\tau$-derivatives to
+ordinary-time derivatives (for a slow particle $\tau\approx t$, and $\dot
+x^0=c\,dt/d\tau\approx c$):
+
+$$
+\frac{d^2x^i}{dt^2} = \frac{c^2}{2}\,\partial_i g_{00}.
+$$
+
+Compare this directly against Newton's second law for motion in a
+gravitational potential $\Phi$, $\dfrac{d^2x^i}{dt^2} = -\partial_i\Phi$.
+Matching the two forces $g_{00}$ and $\Phi$ to describe the *same physical
+motion* requires
+
+$$
+\partial_i g_{00} = -\frac{2}{c^2}\partial_i\Phi
+\quad\Longrightarrow\quad
+g_{00} = -1 - \frac{2\Phi}{c^2}
+$$
+
+(the integration constant is fixed by requiring $g_{00}\to-1$, the flat-space
+value, as $\Phi\to0$ far from any mass). This is a genuinely satisfying
+result: a single component of the metric, in the weak-field limit, *is* the
+Newtonian potential, up to the constants needed to match units. Newtonian
+gravity isn't a separate theory patched onto General Relativity — it's
+exactly what General Relativity's geodesic equation says in the regime of
+weak fields and slow speeds, derived here rather than assumed.
+
+This result also pins down gravitational time dilation properly, rather than
+leaving it as a verbal argument. Proper time along a slowly-moving worldline
+relates to coordinate time via $d\tau = \sqrt{-g_{00}}\,dt \approx
+\left(1+\dfrac{\Phi}{c^2}\right)dt$ (Taylor-expanding the square root to
+leading order in $\Phi/c^2$, using $g_{00}\approx-1-2\Phi/c^2$). Two clocks
+sitting at fixed positions with potentials $\Phi_1,\Phi_2$ therefore
+accumulate proper time at the rate
+
+$$
+\frac{d\tau_2}{d\tau_1} \approx 1 + \frac{\Phi_2-\Phi_1}{c^2},
+$$
+
+which is the precise, derived form of gravitational time dilation: a clock
+higher up (less negative $\Phi$, since $\Phi<0$ near a mass and $\Phi\to0$ far
+away) runs fast relative to one lower down. This is exactly the effect GPS
+satellites have to correct for, now obtained from the metric rather than
+asserted from the equivalence principle alone.
 
 ## The field equations (stated, not derived)
 
@@ -184,13 +327,12 @@ General Relativity at all; expansion or contraction is.
 A few of the theory's testable consequences, each traceable back to the same
 curved-spacetime picture:
 
-- **Gravitational time dilation.** By the equivalence principle, a clock lower
-  in a gravitational potential runs slow relative to one higher up — the same
-  effect as time dilation for an accelerating observer. A photon climbing out of
-  a gravitational well loses energy, which for light means its frequency drops:
-  **gravitational redshift**. This has been measured directly (clocks at
-  different altitudes measurably disagree) and is precise enough that GPS
-  satellites must correct for it.
+- **Gravitational time dilation and redshift**, derived above from $g_{00}$: a
+  clock lower in a gravitational potential runs slow relative to one higher
+  up. For light, the same effect shows up as a drop in frequency climbing out
+  of a potential well — **gravitational redshift**. This has been measured
+  directly (clocks at different altitudes measurably disagree) and is precise
+  enough that GPS satellites must correct for it.
 - **Light bending.** Light follows geodesics too, and a geodesic passing near a
   massive body bends. This was the theory's first dramatic public confirmation:
   Arthur Eddington's 1919 solar eclipse expedition measured starlight bending
