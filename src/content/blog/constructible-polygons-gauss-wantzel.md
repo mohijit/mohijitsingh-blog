@@ -1,7 +1,7 @@
 ---
 title: "Constructible Polygons: Why Gauss Could Draw a 17-gon but Not a 7-gon"
 description: "From bisecting an angle to Gauss's 17-gon: how field extensions of degree a power of two decide exactly which regular polygons compass and straightedge can build."
-date: 2026-07-26
+date: 2026-06-13
 tags: ["math", "algebra"]
 ---
 

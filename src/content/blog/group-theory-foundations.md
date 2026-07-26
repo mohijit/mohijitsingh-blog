@@ -1,7 +1,7 @@
 ---
 title: "The Shape of Symmetry: A Ground-Up Tour of Group Theory"
 description: "Starting from the symmetries of a square, we build group theory from scratch with real proofs: Lagrange's theorem, the First Isomorphism Theorem, quotient groups, and a full proof of Cauchy's theorem."
-date: 2026-07-26
+date: 2026-05-16
 tags: ["math", "algebra"]
 ---
 

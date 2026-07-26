@@ -1,7 +1,7 @@
 ---
 title: "Which primes are a sum of two squares?"
 description: "From an elementary congruence check to Gaussian integers, class groups, and quadratic reciprocity."
-date: 2026-07-26
+date: 2026-05-31
 tags: ["math", "number-theory"]
 ---
 

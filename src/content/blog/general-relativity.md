@@ -1,7 +1,7 @@
 ---
 title: "General relativity, from two puzzles to an expanding universe"
 description: "How the equivalence of gravitational and inertial mass leads to spacetime curvature, the Friedmann equations, and gravity's uneasy relationship with quantum mechanics."
-date: 2026-07-26
+date: 2026-07-05
 tags: ["physics"]
 ---
 

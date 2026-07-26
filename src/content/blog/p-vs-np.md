@@ -1,7 +1,7 @@
 ---
 title: "P vs NP: Checking Is Easy. Is Finding?"
 description: "A tour of the biggest open question in computer science — what it actually asks, why it's hard to answer, and why the answer would reshape cryptography, optimization, and maybe creativity itself."
-date: 2026-07-24
+date: 2026-05-02
 tags: ["cs", "complexity-theory"]
 ---
 

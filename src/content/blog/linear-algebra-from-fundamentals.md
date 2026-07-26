@@ -1,7 +1,7 @@
 ---
 title: "Linear algebra, from vectors to singular values"
 description: "Building up vector spaces, linear maps, and eigenstructure from first principles, ending at the singular value decomposition."
-date: 2026-07-26
+date: 2026-06-28
 tags: ["math", "algebra"]
 ---
 

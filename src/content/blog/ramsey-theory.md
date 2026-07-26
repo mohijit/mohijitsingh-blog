@@ -1,7 +1,7 @@
 ---
 title: "The Party Problem: Order Hidden in Every Crowd"
 description: "A complete elementary proof that among any six people, three either all know each other or are all mutual strangers — and how that one puzzle opens onto Ramsey theory, a field built on proving order is unavoidable while barely being able to compute it."
-date: 2026-07-26
+date: 2026-06-27
 tags: ["math", "combinatorics"]
 ---
 

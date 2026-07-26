@@ -1,7 +1,7 @@
 ---
 title: "Solvable Everywhere, Solvable Nowhere"
 description: "An equation can have a solution modulo every integer and over the real numbers, yet still have no rational solution. Hasse–Minkowski, Selmer's cubic, and the Brauer–Manin obstruction."
-date: 2026-07-26
+date: 2026-06-07
 tags: ["math", "number-theory"]
 ---
 

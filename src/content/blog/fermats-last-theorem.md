@@ -1,7 +1,7 @@
 ---
 title: "Fermat's Last Theorem: The Two Cases You Can Actually Prove"
 description: "A complete, rigorous proof of Fermat's Last Theorem for exponents 3 and 4, plus an honest map — not a derivation — of the Frey curve / modularity argument needed for the general case."
-date: 2026-07-19
+date: 2026-04-12
 tags: ["math", "number-theory"]
 ---
 
